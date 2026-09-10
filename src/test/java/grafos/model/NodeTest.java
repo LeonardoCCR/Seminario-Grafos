@@ -1,6 +1,5 @@
 package grafos.model;
 
-import grafos.model.Node;
 import org.junit.jupiter.api.Test;
 
 
