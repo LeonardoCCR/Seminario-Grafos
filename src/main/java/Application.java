@@ -287,7 +287,6 @@ public class Application {
             System.out.println("\n=== INFORMAÇÕES DO GRAFO ===");
             System.out.println("1 - Ordem do grafo");
             System.out.println("2 - Grau dos vértices");
-            System.out.println("3 - Vizinhos de um vértice");
             System.out.println("0 - Voltar ao menu do grafo");
 
             switch (read("Escolha uma opção: ")) {
@@ -296,9 +295,6 @@ public class Application {
                     break;
                 case "2":
                     printDegrees();
-                    break;
-                case "3":
-                    printNeighbors();
                     break;
                 case "0":
                     return;
@@ -332,37 +328,6 @@ public class Application {
     private void invalidOption() {
         if (this.running) {
             System.out.println("Opção inválida. Tente novamente.");
-        }
-    }
-
-    // Exibe os vizinhos ou, em grafos orientados, os sucessores e predecessores.
-    //Em grafos orientados, eu vi que existe o termo sucessores e predecessores do vértice e por isso seria
-    //diferente do não orientado que tem como "vizinhos" todos os vertices adjacentes
-    private void printNeighbors() {
-        String id = read("ID do vértice: ");
-
-        if (!this.running) {
-            return;
-        }
-
-        if (this.graph.isDirected()) {
-            System.out.println("Sucessores de " + id + ":");
-
-            for (Node<String> node : this.graph.getNeighbors(id)) {
-                System.out.println(node);
-            }
-
-            System.out.println("Predecessores de " + id + ":");
-
-            for (Node<String> node : this.graph.getPredecessors(id)) {
-                System.out.println(node);
-            }
-        } else {
-            System.out.println("Vizinhos de " + id + ":");
-
-            for (Node<String> node : this.graph.getNeighbors(id)) {
-                System.out.println(node);
-            }
         }
     }
 }
