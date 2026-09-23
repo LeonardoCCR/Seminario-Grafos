@@ -125,6 +125,7 @@ public class Application {
             System.out.println("1 - Adicionar vértice");
             System.out.println("2 - Adicionar aresta");
             System.out.println("3 - Remover vértice");
+            System.out.println("4 - Remover aresta");
             System.out.println("6 - Informações do grafo");
             System.out.println("0 - Voltar ao menu principal");
 
@@ -138,6 +139,9 @@ public class Application {
                         break;
                     case "3":
                         removeNode();
+                        break;
+                    case "4":
+                        removeEdge();
                         break;
                     case "6":
                         informationMenu();
@@ -243,6 +247,39 @@ public class Application {
 
         this.graph.removeNode(id);
         System.out.println("Vértice removido.");
+    }
+
+    private void removeEdge() {
+        if (this.graph.getNumNodes() == 0) {
+            System.out.println("Adicione vértices primeiro.");
+            return;
+        }
+
+        System.out.println("\nVértices disponíveis:");
+
+        for (Node<String> node : this.graph.getNodes()) {
+            System.out.println(node);
+        }
+
+        String src = read("ID do vértice de origem: ");
+
+        if (!this.running) {
+            return;
+        }
+
+        String dest = read("ID do vértice de destino: ");
+
+        if (!this.running) {
+            return;
+        }
+
+        if (!this.graph.hasEdge(src, dest)) {
+            System.out.println("Essa aresta não existe.");
+            return;
+        }
+
+        this.graph.removeEdge(src, dest);
+        System.out.println("Aresta removida.");
     }
 
     private void informationMenu() {
