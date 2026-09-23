@@ -106,6 +106,61 @@ public class AdjMatrixGraph<T> {
         }
     }
 
+    public void removeNode(String id) {
+        int index = getNodeIndex(id);
+        int removedEdges = 0;
+
+        // conto as arestas que somem junto com o vértice antes de mexer na matriz
+        for (int i = 0; i < this.numNodes; i++) {
+            if (this.adjacencyMatrix[index][i] != WITHOUT_EDGE) {
+                ++removedEdges;
+            }
+        }
+
+        // no orientado a coluna também conta, menos o laço que já foi contado na linha
+        if (this.directed) {
+            for (int i = 0; i < this.numNodes; i++) {
+                if (i != index && this.adjacencyMatrix[i][index] != WITHOUT_EDGE) {
+                    ++removedEdges;
+                }
+            }
+        }
+
+        Double[][] reducedMatrix = new Double[this.numNodes - 1][this.numNodes - 1];
+        int reducedRow = 0;
+
+        for (int i = 0; i < this.numNodes; i++) {
+            if (i == index) {
+                continue;
+            }
+
+            int reducedColumn = 0;
+
+            for (int j = 0; j < this.numNodes; j++) {
+                if (j == index) {
+                    continue;
+                }
+
+                reducedMatrix[reducedRow][reducedColumn] = this.adjacencyMatrix[i][j];
+                ++reducedColumn;
+            }
+
+            ++reducedRow;
+        }
+
+        this.nodes.remove(index);
+        this.adjacencyMatrix = reducedMatrix;
+        this.numEdges -= removedEdges;
+        --this.numNodes;
+
+        // os vértices andam de posição quando um sai, então refaço o mapa de índices
+        this.nodeIndexes.clear();
+
+        for (int i = 0; i < this.numNodes; i++) {
+            this.nodeIndexes.put(this.nodes.get(i).getId(), i);
+        }
+    }
+
     public boolean hasEdge(String src, String dest) {
         int srcIndex = getNodeIndex(src);
         int destIndex = getNodeIndex(dest);
