@@ -57,7 +57,7 @@ public class Application {
         System.out.println("Programa encerrado.");
     }
 
-    //Cria um grafo vazio.
+    //Refatoramos, para se adequar com a possibilidade de grafos orientados
     private void createGraph() {
         if (this.graph != null) {
             String answer = read("Substituir o grafo atual e perder seus dados? (s/n): ");
@@ -71,8 +71,51 @@ public class Application {
             return;
         }
 
-        this.graph = new AdjMatrixGraph<String>(new ArrayList<Node<String>>());
-        System.out.println("Grafo criado.");
+        boolean directed = false;
+        boolean weighted = false;
+
+        while (this.running) {
+            String answer = read("O grafo será orientado? (s/n): ");
+
+            if (!this.running) {
+                return;
+            }
+
+            if (!answer.equalsIgnoreCase("s") && !answer.equalsIgnoreCase("n")) {
+                invalidOption();
+                continue;
+            }
+
+            directed = answer.equalsIgnoreCase("s");
+            break;
+        }
+
+        while (this.running) {
+            String answer = read("O grafo será ponderado? (s/n): ");
+
+            if (!this.running) {
+                return;
+            }
+
+            if (!answer.equalsIgnoreCase("s") && !answer.equalsIgnoreCase("n")) {
+                invalidOption();
+                continue;
+            }
+
+            weighted = answer.equalsIgnoreCase("s");
+            break;
+        }
+
+        if (!this.running) {
+            return;
+        }
+
+        this.graph = new AdjMatrixGraph<String>(new ArrayList<Node<String>>(), directed, weighted);
+
+        //Se quiser depois pode alterar, mas por enquanto deixei ternário mesmo
+        System.out.println("Grafo " + (directed ? "orientado" : "não orientado")
+                + " e " + (weighted ? "ponderado" : "não ponderado") + " criado.");
+
         graphMenu();
     }
 
@@ -106,7 +149,6 @@ public class Application {
         }
     }
 
-
     private void addNode() {
         String id = read("ID do vértice: ");
 
@@ -124,7 +166,6 @@ public class Application {
         System.out.println("Vértice adicionado.");
     }
 
-    // Adiciona uma aresta não direcionada e sem peso.
     private void addEdge() {
         if (this.graph.getNumNodes() == 0) {
             System.out.println("Adicione vértices primeiro.");
@@ -137,13 +178,13 @@ public class Application {
             System.out.println(node);
         }
 
-        String src = read("ID do primeiro vértice: ");
+        String src = read("ID do vértice de origem: ");
 
         if (!this.running) {
             return;
         }
 
-        String dest = read("ID do segundo vértice: ");
+        String dest = read("ID do vértice de destino: ");
 
         if (!this.running) {
             return;
@@ -154,7 +195,27 @@ public class Application {
             return;
         }
 
-        this.graph.addEdge(src, dest);
+        if (this.graph.isWeighted()) {
+            String input = read("Peso da aresta: ");
+
+            if (!this.running) {
+                return;
+            }
+
+            double weight;
+
+            try {
+                weight = Double.parseDouble(input.replace(',', '.'));
+            } catch (NumberFormatException exception) {
+                System.out.println("Peso inválido. Informe um número.");
+                return;
+            }
+
+            this.graph.addEdge(src, dest, weight);
+        } else {
+            this.graph.addEdge(src, dest);
+        }
+
         System.out.println("Aresta adicionada.");
     }
 
@@ -163,6 +224,7 @@ public class Application {
             System.out.println("\n=== INFORMAÇÕES DO GRAFO ===");
             System.out.println("1 - Ordem do grafo");
             System.out.println("2 - Grau dos vértices");
+            System.out.println("3 - Vizinhos de um vértice");
             System.out.println("0 - Voltar ao menu do grafo");
 
             switch (read("Escolha uma opção: ")) {
@@ -171,6 +233,9 @@ public class Application {
                     break;
                 case "2":
                     printDegrees();
+                    break;
+                case "3":
+                    printNeighbors();
                     break;
                 case "0":
                     return;
@@ -190,7 +255,6 @@ public class Application {
         this.graph.printDegrees();
     }
 
-
     private String read(String message) {
         System.out.print(message);
 
@@ -207,4 +271,36 @@ public class Application {
             System.out.println("Opção inválida. Tente novamente.");
         }
     }
+
+    // Exibe os vizinhos ou, em grafos orientados, os sucessores e predecessores.
+    //Em grafos orientados, eu vi que existe o termo sucessores e predecessores do vértice e por isso seria
+    //diferente do não orientado que tem como "vizinhos" todos os vertices adjacentes
+    private void printNeighbors() {
+        String id = read("ID do vértice: ");
+
+        if (!this.running) {
+            return;
+        }
+
+        if (this.graph.isDirected()) {
+            System.out.println("Sucessores de " + id + ":");
+
+            for (Node<String> node : this.graph.getNeighbors(id)) {
+                System.out.println(node);
+            }
+
+            System.out.println("Predecessores de " + id + ":");
+
+            for (Node<String> node : this.graph.getPredecessors(id)) {
+                System.out.println(node);
+            }
+        } else {
+            System.out.println("Vizinhos de " + id + ":");
+
+            for (Node<String> node : this.graph.getNeighbors(id)) {
+                System.out.println(node);
+            }
+        }
+    }
 }
+
