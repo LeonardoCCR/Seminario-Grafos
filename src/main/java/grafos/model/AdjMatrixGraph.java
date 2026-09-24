@@ -1,6 +1,9 @@
 package grafos.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.ArrayDeque;
+import java.util.Queue;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -13,8 +16,8 @@ public class AdjMatrixGraph<T> {
     private static final double WITH_EDGE = 1.0;
     private static final Double WITHOUT_EDGE = null;
 
-    private boolean directed;
-    private boolean weighted;
+    private final boolean directed;
+    private final boolean weighted;
     private int numNodes;
     private int numEdges;
     private Double[][] adjacencyMatrix;
@@ -80,15 +83,17 @@ public class AdjMatrixGraph<T> {
         int srcIndex = getNodeIndex(src);
         int destIndex = getNodeIndex(dest);
 
-        if (this.adjacencyMatrix[srcIndex][destIndex] == WITHOUT_EDGE) {
-            this.adjacencyMatrix[srcIndex][destIndex] = weight;
-
-            if (!this.directed) {
-                this.adjacencyMatrix[destIndex][srcIndex] = weight;
-            }
-
-            ++this.numEdges;
+        if (this.adjacencyMatrix[srcIndex][destIndex] != WITHOUT_EDGE) {
+            throw new IllegalArgumentException("Representação por Matriz de Adjacências não permite multiarestas / multigrafo");
         }
+
+        this.adjacencyMatrix[srcIndex][destIndex] = weight;
+
+        if (!this.directed) {
+            this.adjacencyMatrix[destIndex][srcIndex] = weight;
+        }
+
+        ++this.numEdges;
     }
 
     public void removeEdge(String src, String dest) {
@@ -228,16 +233,7 @@ public class AdjMatrixGraph<T> {
     }
 
     public int countNeighbors(String id) {
-        int index = getNodeIndex(id);
-        int count = 0;
-
-        for (int i = 0; i < this.numNodes; i++) {
-            if (this.adjacencyMatrix[index][i] != WITHOUT_EDGE) {
-                ++count;
-            }
-        }
-
-        return count;
+        return getOutDegree(id);
     }
 
     //  reotorna a ordem do grafo
@@ -289,23 +285,6 @@ public class AdjMatrixGraph<T> {
         }
 
         return degree;
-    }
-
-    public void printDegrees() {
-        if (this.numNodes == 0) {
-            System.out.println("O grafo não possui vértices.");
-            return;
-        }
-
-        for (Node<T> node : this.nodes) {
-            String id = node.getId();
-
-            if (this.directed) {
-                System.out.println("Vértice " + id + ": grau de entrada " + getInDegree(id) + ", grau de saída " + getOutDegree(id));
-            } else {
-                System.out.println("Vértice " + id + ": grau " + getDegree(id));
-            }
-        }
     }
 
     public int getNumNodes() {
@@ -388,5 +367,294 @@ public class AdjMatrixGraph<T> {
         this.nodes.add(node);
         this.adjacencyMatrix = expandedMatrix;
         ++this.numNodes;
+    }
+
+    public boolean hasLoops() {
+        for (int i = 0; i < this.numNodes; i++) {
+            if (this.adjacencyMatrix[i][i] != WITHOUT_EDGE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isSimple() {
+        return !hasLoops();
+    }
+
+    public boolean isRegular() {
+        if (this.numNodes == 0) {
+            return true;
+        }
+        String first = this.nodes.get(0).getId();
+        int degree = getDegree(first);
+        int inDegree = getInDegree(first);
+        int outDegree = getOutDegree(first);
+
+        for (Node<T> node : this.nodes) {
+            String id = node.getId();
+            if (this.directed) {
+                if (getInDegree(id) != inDegree || getOutDegree(id) != outDegree) {
+                    return false;
+                }
+            } else if (getDegree(id) != degree) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean isComplete() {
+        if (!isSimple()) {
+            return false;
+        }
+        for (int i = 0; i < this.numNodes; i++) {
+            for (int j = 0; j < this.numNodes; j++) {
+                if (i != j && this.adjacencyMatrix[i][j] == WITHOUT_EDGE) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean isBipartite() {
+        if (this.directed) {
+            throw new IllegalArgumentException("Não se aplica nesta entrega.");
+        }
+        int[] colors = new int[this.numNodes];
+        Arrays.fill(colors, -1);
+        Queue<Integer> queue = new ArrayDeque<>();
+
+        for (int start = 0; start < this.numNodes; start++) {
+            if (colors[start] != -1) {
+                continue;
+            }
+            colors[start] = 0;
+            queue.add(start);
+
+            while (!queue.isEmpty()) {
+                int current = queue.remove();
+                for (int next = 0; next < this.numNodes; next++) {
+                    if (this.adjacencyMatrix[current][next] == WITHOUT_EDGE) {
+                        continue;
+                    }
+                    if (colors[next] == -1) {
+                        colors[next] = 1 - colors[current];
+                        queue.add(next);
+                    } else if (colors[next] == colors[current]) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    public List<Node<T>> getLoopNodes() {
+        List<Node<T>> result = new ArrayList<>();
+        for (int i = 0; i < this.numNodes; i++) {
+            if (this.adjacencyMatrix[i][i] != WITHOUT_EDGE) {
+                result.add(this.nodes.get(i));
+            }
+        }
+        return result;
+    }
+
+    public List<Node<T>> getLeafNodes() {
+        if (this.directed) {
+            throw new IllegalArgumentException("A classificação de folhas se aplica apenas a grafos não orientados nesta entrega.");
+        }
+        List<Node<T>> result = new ArrayList<>();
+        for (Node<T> node : this.nodes) {
+            if (getDegree(node.getId()) == 1) {
+                result.add(node);
+            }
+        }
+        return result;
+    }
+
+    public List<Node<T>> getIsolatedNodes() {
+        List<Node<T>> result = new ArrayList<>();
+        for (Node<T> node : this.nodes) {
+            if (getDegree(node.getId()) == 0) {
+                result.add(node);
+            }
+        }
+        return result;
+    }
+
+    private void requireDirected() {
+        if (!this.directed) {
+            throw new IllegalArgumentException("Esta operação exige um grafo orientado.");
+        }
+    }
+
+    public boolean isSource(String id) {
+        requireDirected();
+        return getInDegree(id) == 0 && getOutDegree(id) > 0;
+    }
+
+    public boolean isSink(String id) {
+        requireDirected();
+        return getOutDegree(id) == 0 && getInDegree(id) > 0;
+    }
+
+    public List<Node<T>> getSources() {
+        requireDirected();
+        List<Node<T>> result = new ArrayList<>();
+        for (Node<T> node : this.nodes) {
+            if (isSource(node.getId())) {
+                result.add(node);
+            }
+        }
+        return result;
+    }
+
+    public List<Node<T>> getSinks() {
+        requireDirected();
+        List<Node<T>> result = new ArrayList<>();
+        for (Node<T> node : this.nodes) {
+            if (isSink(node.getId())) {
+                result.add(node);
+            }
+        }
+        return result;
+    }
+
+    public List<Node<T>> getDirectTransitiveClosure(String id) {
+        return getTransitiveClosure(id, false);
+    }
+
+    public List<Node<T>> getInverseTransitiveClosure(String id) {
+        return getTransitiveClosure(id, true);
+    }
+
+    private List<Node<T>> getTransitiveClosure(String id, boolean inverse) {
+        requireDirected();
+        int start = getNodeIndex(id);
+        boolean[] reached = new boolean[this.numNodes];
+        Queue<Integer> queue = new ArrayDeque<>();
+        queue.add(start);
+
+        while (!queue.isEmpty()) {
+            int current = queue.remove();
+            for (int next = 0; next < this.numNodes; next++) {
+                boolean connected = inverse ? this.adjacencyMatrix[next][current] != WITHOUT_EDGE : this.adjacencyMatrix[current][next] != WITHOUT_EDGE;
+                if (connected && !reached[next]) {
+                    reached[next] = true;
+                    queue.add(next);
+                }
+            }
+        }
+
+        List<Node<T>> result = new ArrayList<>();
+        for (int i = 0; i < this.numNodes; i++) {
+            if (reached[i]) {
+                result.add(this.nodes.get(i));
+            }
+        }
+        return result;
+    }
+
+    private String formatNodes(List<Node<T>> selected) {
+        StringBuilder result = new StringBuilder("[");
+        for (int i = 0; i < selected.size(); i++) {
+            if (i > 0) {
+                result.append(", ");
+            }
+            result.append(selected.get(i).getId());
+        }
+        return result.append("]").toString();
+    }
+
+    public String getDegreesInformation() {
+        StringBuilder result = new StringBuilder();
+        if (this.numNodes == 0) {
+            result.append("O grafo não possui vértices.\n");
+        }
+        for (Node<T> node : this.nodes) {
+            String id = node.getId();
+            result.append("Vértice ").append(id);
+            if (this.directed) {
+                result.append(": grau de entrada ").append(getInDegree(id))
+                        .append(", grau de saída ").append(getOutDegree(id));
+            } else {
+                result.append(": grau ").append(getDegree(id));
+            }
+            result.append("\n");
+            if (this.directed) {
+                result.append("  Sucessores: ").append(formatNodes(getNeighbors(id)))
+                        .append("; Antecessores: ").append(formatNodes(getPredecessors(id))).append("\n");
+            }
+        }
+
+        result.append("Laços: ");
+        List<Node<T>> loopNodes = getLoopNodes();
+        if (loopNodes.isEmpty()) {
+            result.append("[]");
+        } else {
+            for (int i = 0; i < loopNodes.size(); i++) {
+                if (i > 0) {
+                    result.append(", ");
+                }
+                String id = loopNodes.get(i).getId();
+                result.append(id).append(" → ").append(id);
+            }
+        }
+        result.append("\nVértices isolados: ").append(formatNodes(getIsolatedNodes()));
+        if (this.directed) {
+            result.append("\nFontes: ").append(formatNodes(getSources()));
+            result.append("\nSumidouros: ").append(formatNodes(getSinks()));
+        } else {
+            result.append("\nVértices folha ou terminais: ").append(formatNodes(getLeafNodes()));
+        }
+        return result.toString();
+    }
+
+    private String formatBoolean(boolean value) {
+        return value ? "True" : "False";
+    }
+
+    public String getGraphInformation() {
+        return getGraphInformation(null);
+    }
+
+    public String getGraphInformation(String closureNodeId) {
+        if (this.directed && closureNodeId != null) {
+            getNodeIndex(closureNodeId);
+        }
+        StringBuilder result = new StringBuilder("\n=== INFORMAÇÕES DO GRAFO ===\n");
+        result.append("\n1.6.1 — Ordem: ").append(getOrder())
+                .append("\nTamanho: ").append(this.numEdges)
+                .append(this.directed ? " arcos" : " arestas")
+                .append("\nTipo: ").append(this.directed ? "Orientado" : "Não orientado")
+                .append(this.weighted ? " e ponderado" : " e não ponderado");
+        result.append("\n\n1.6.2 — Grau dos Vértices:\n").append(getDegreesInformation());
+        result.append("\n\n1.6.3 — Simples - ").append(formatBoolean(isSimple()));
+        result.append("\n1.6.4 — Regular - ").append(formatBoolean(isRegular()));
+        result.append("\n1.6.5 — Completo - ").append(formatBoolean(isComplete()));
+        result.append("\n1.6.6 — Bipartido - ")
+                .append(this.directed ? "Não se aplica nesta entrega" : formatBoolean(isBipartite()));
+        result.append("\n\n1.6.7 — Fontes e sumidouros:\n");
+        if (this.directed) {
+            result.append("Fontes: ").append(formatNodes(getSources()))
+                    .append("\nSumidouros: ").append(formatNodes(getSinks()));
+        } else {
+            result.append("Não se aplica a grafos não orientados.");
+        }
+        result.append("\n\n1.6.8 — Fecho Transitivo Direto e Inverso:\n");
+        if (!this.directed) {
+            result.append("Não se aplica a grafos não orientados.");
+        } else if (this.numNodes == 0) {
+            result.append("O grafo não possui vértices.");
+        } else if (closureNodeId == null) {
+            result.append("Informe um vértice para consultar os fechos transitivos.");
+        } else {
+            result.append("Vértice: ").append(closureNodeId)
+                    .append("\nDireto: ").append(formatNodes(getDirectTransitiveClosure(closureNodeId)))
+                    .append("\nInverso: ").append(formatNodes(getInverseTransitiveClosure(closureNodeId)));
+        }
+        return result.toString();
     }
 }
