@@ -573,6 +573,22 @@ public class AdjMatrixGraph<T> {
         return result;
     }
 
+    //Deixei a validação aqui e não no menu, porque quem sabe se o grafo serve é o próprio grafo
+    public String dijkstra(String src, String dest) {
+        getNodeIndex(src);
+        getNodeIndex(dest);
+
+        if (!this.weighted) {
+            throw new IllegalArgumentException("O algoritmo de Dijkstra exige um grafo ponderado.");
+        }
+
+        if (hasNegativeWeights()) {
+            throw new IllegalArgumentException("O grafo possui pesos negativos, então o algoritmo de Dijkstra não pode ser aplicado.");
+        }
+
+        return "O algoritmo de Dijkstra ainda será implementado.";
+    }
+
     private String formatNodes(List<Node<T>> selected) {
         StringBuilder result = new StringBuilder("[");
         for (int i = 0; i < selected.size(); i++) {
