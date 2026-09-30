@@ -147,7 +147,7 @@ public class Application {
             System.out.println("1.4 - Remover Aresta");
             System.out.println("1.5 - Imprimir Grafo");
             System.out.println("1.6 - Informações do Grafo");
-            // System.out.println("1.7 - Algoritmos");
+            System.out.println("1.7 - Algoritmos");
             // System.out.println("1.8 - Salvar Grafo em Disco");
             // System.out.println("1.9 - Gerar Imagem do Grafo");
             System.out.println("1.10 - Sair");
@@ -173,9 +173,10 @@ public class Application {
                     case "1.6":
                         printInformation();
                         break;
+                    case "1.7":
+                        algorithmsMenu();
+                        break;
                     //Manter e desmcomentar quando implementarmos nas proximas entregas
-                    // case "1.7":
-                    //     break;
                     // case "1.8":
                     //     break;
                     // case "1.9":
@@ -342,6 +343,65 @@ public class Application {
 
         this.graph.removeEdge(src, dest);
         System.out.println("Aresta removida.");
+    }
+
+
+    private void algorithmsMenu() {
+        while (this.running) {
+            System.out.println("\n=== ALGORITMOS ===");
+            System.out.println("1.7.1 - Dijkstra (caminho mínimo)");
+            System.out.println("0 - Voltar ao menu do grafo");
+
+
+            try {
+                switch (read("Escolha uma opção: ")) {
+                    case "1.7.1":
+                        printShortestPath();
+                        break;
+                    case "0":
+                        return;
+                    default:
+                        invalidOption();
+                }
+            } catch (IllegalArgumentException exception) {
+                System.out.println("Erro: " + exception.getMessage());
+            }
+        }
+    }
+
+
+    private void printShortestPath() {
+        if (this.graph.getNumNodes() == 0) {
+            System.out.println("O grafo não possui vértices.");
+            return;
+        }
+
+
+        System.out.println("\nVértices disponíveis:");
+
+
+        for (Node<String> node : this.graph.getNodes()) {
+            System.out.println(node);
+        }
+
+
+        String src = read("ID do vértice de origem: ");
+
+
+        if (!this.running) {
+            return;
+        }
+
+
+        String dest = read("ID do vértice de destino: ");
+
+
+        if (!this.running) {
+            return;
+        }
+
+
+        System.out.println(this.graph.dijkstra(src, dest));
     }
 
 
