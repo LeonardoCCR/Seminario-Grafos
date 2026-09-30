@@ -382,6 +382,22 @@ public class AdjMatrixGraph<T> {
         return !hasLoops();
     }
 
+    // Dijkstra só vale para pesos não negativos, então preciso conferir antes de rodar
+    public boolean hasNegativeWeights() {
+        if (!this.weighted) {
+            return false;
+        }
+
+        for (int i = 0; i < this.numNodes; i++) {
+            for (int j = 0; j < this.numNodes; j++) {
+                if (this.adjacencyMatrix[i][j] != WITHOUT_EDGE && this.adjacencyMatrix[i][j] < 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean isRegular() {
         if (this.numNodes == 0) {
             return true;
