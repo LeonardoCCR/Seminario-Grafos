@@ -134,7 +134,7 @@ public class GraphTestRoutine {
         check(!graph.isComplete(), "Um grafo com laço não deve ser completo.");
 
 
-        show("TESTE 3 - Grafo ponderado com laço", "Laço em A; Grau de A = 3; Tamanho = 2; Simples = Não; Bipartido = Não.", graph, null);
+        show("TESTE 3 - Grafo ponderado com laço", "Laço em A; Grau de A = 3; Tamanho = 2; Simples = Não (multigrafo); Bipartido = Não.", graph, null);
 
 
         try {
