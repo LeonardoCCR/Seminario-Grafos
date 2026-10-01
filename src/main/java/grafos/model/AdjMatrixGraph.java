@@ -645,7 +645,7 @@ public class AdjMatrixGraph<T> {
     }
 
     private String formatBoolean(boolean value) {
-        return value ? "True" : "False";
+        return value ? "Sim" : "Não";
     }
 
     public String getGraphInformation() {

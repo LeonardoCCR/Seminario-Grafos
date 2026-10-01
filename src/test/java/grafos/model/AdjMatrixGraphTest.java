@@ -354,8 +354,8 @@ class AdjMatrixGraphTest {
         assertTrue(info.contains("Vértice A: grau 3"));
         assertTrue(info.contains("Laços: A → A, B → B"));
         assertTrue(info.contains("Vértices isolados: [C]"));
-        assertTrue(info.contains("1.6.3 — Simples - False"));
-        assertTrue(info.contains("1.6.6 — Bipartido - False"));
+        assertTrue(info.contains("1.6.3 — Simples - Não"));
+        assertTrue(info.contains("1.6.6 — Bipartido - Não"));
         assertTrue(info.contains("Não se aplica a grafos não orientados."));
         assertFalse(info.contains("Escolha uma opção"));
     }
@@ -372,9 +372,9 @@ class AdjMatrixGraphTest {
         assertTrue(info.contains("Sucessores: [C]; Antecessores: [A]"));
         assertTrue(info.contains("Fontes: [A]"));
         assertTrue(info.contains("Sumidouros: [C]"));
-        assertTrue(info.contains("1.6.3 — Simples - True"));
-        assertTrue(info.contains("1.6.4 — Regular - False"));
-        assertTrue(info.contains("1.6.5 — Completo - False"));
+        assertTrue(info.contains("1.6.3 — Simples - Sim"));
+        assertTrue(info.contains("1.6.4 — Regular - Não"));
+        assertTrue(info.contains("1.6.5 — Completo - Não"));
         assertTrue(info.contains("1.6.6 — Bipartido - Não se aplica nesta entrega"));
         assertTrue(info.contains("Direto: [C]"));
         assertTrue(info.contains("Inverso: [A]"));

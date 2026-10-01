@@ -86,7 +86,7 @@ public class GraphTestRoutine {
         }
 
 
-        show("TESTE 1 - Triângulo não orientado", "Simples = True; Regular = True; Completo = True; Bipartido = False.", graph, null);
+        show("TESTE 1 - Triângulo não orientado", "Simples = Sim; Regular = Sim; Completo = Sim; Bipartido = Não.", graph, null);
     }
 
 
@@ -112,7 +112,7 @@ public class GraphTestRoutine {
         check(!graph.isComplete(), "O grafo não deve ser completo.");
 
 
-        show("TESTE 2 - Caminho A-B-C e vértice isolado D", "Folhas = [A, C]; Isolados = [D]; Regular = False; Completo = False.", graph, null);
+        show("TESTE 2 - Caminho A-B-C e vértice isolado D", "Folhas = [A, C]; Isolados = [D]; Regular = Não; Completo = Não.", graph, null);
     }
 
 
@@ -134,7 +134,7 @@ public class GraphTestRoutine {
         check(!graph.isComplete(), "Um grafo com laço não deve ser completo.");
 
 
-        show("TESTE 3 - Grafo ponderado com laço", "Laço em A; Grau de A = 3; Tamanho = 2; Simples = False; Bipartido = False.", graph, null);
+        show("TESTE 3 - Grafo ponderado com laço", "Laço em A; Grau de A = 3; Tamanho = 2; Simples = Não; Bipartido = Não.", graph, null);
 
 
         try {
@@ -170,7 +170,7 @@ public class GraphTestRoutine {
         check(!graph.isComplete(), "O ciclo de quatro vértices não deve ser completo.");
 
 
-        show("TESTE 4 - Ciclo A-B-C-D-A", "Bipartido = True; partições possíveis: [A, C] e [B, D]; Regular = True.", graph, null);
+        show("TESTE 4 - Ciclo A-B-C-D-A", "Bipartido = Sim; partições possíveis: [A, C] e [B, D]; Regular = Sim.", graph, null);
     }
 
 
@@ -241,7 +241,7 @@ public class GraphTestRoutine {
         check(getIds(graph.getInverseTransitiveClosure("A")).equals(Arrays.asList("A", "B", "C")), "O fecho inverso deve incluir A porque há um ciclo de retorno.");
 
 
-        show("TESTE 6 - Dígrafo completo em três vértices", "Simples = True; Regular = True; Completo = True; seis arcos; entrada e saída dois em cada vértice.", graph, "A");
+        show("TESTE 6 - Dígrafo completo em três vértices", "Simples = Sim; Regular = Sim; Completo = Sim; seis arcos; entrada e saída dois em cada vértice.", graph, "A");
     }
 
 
