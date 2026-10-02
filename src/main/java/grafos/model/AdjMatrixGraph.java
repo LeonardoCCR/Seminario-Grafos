@@ -574,7 +574,12 @@ public class AdjMatrixGraph<T> {
     }
 
     //Deixei a validação aqui e não no menu, porque quem sabe se o grafo serve é o próprio grafo
-    public String dijkstra(String src, String dest) {
+    public String dijkstra(AdjMatrixGraph<T> graph, String src, String dest) {
+
+        if (graph == null) {
+            throw new IllegalArgumentException("O grafo não pode ser nulo.");
+        }
+
         getNodeIndex(src);
         getNodeIndex(dest);
 
@@ -585,6 +590,8 @@ public class AdjMatrixGraph<T> {
         if (hasNegativeWeights()) {
             throw new IllegalArgumentException("O grafo possui pesos negativos, então o algoritmo de Dijkstra não pode ser aplicado.");
         }
+
+        Double [][] distancesMatrix = createDistanceMatrix(graph);
 
         return "O algoritmo de Dijkstra ainda será implementado.";
     }
@@ -598,6 +605,34 @@ public class AdjMatrixGraph<T> {
             result.append(selected.get(i).getId());
         }
         return result.append("]").toString();
+    }
+
+    private Double[][] createDistanceMatrix(AdjMatrixGraph<T> graph) {
+        if (graph == null) {
+            throw new IllegalArgumentException("O grafo não pode ser nulo.");
+        }
+
+        int order = graph.getOrder();
+        Double[][] distances = new Double[order][order];
+
+        for (int i = 0; i < order; i++) {
+            for (int j = 0; j < order; j++) {
+                if (i == j) {
+                    distances[i][j] = 0.0;
+                    continue;
+                }
+
+                Double weight = graph.adjacencyMatrix[i][j];
+
+                if (weight != WITHOUT_EDGE) {
+                    distances[i][j] = graph.isWeighted() ? weight : WITH_EDGE;
+                } else {
+                    distances[i][j] = Double.POSITIVE_INFINITY;
+                }
+            }
+        }
+
+        return distances;
     }
 
     public String getDegreesInformation() {
