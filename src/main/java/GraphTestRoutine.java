@@ -15,6 +15,8 @@ public class GraphTestRoutine {
         testDirectedGraph();
         testCompleteDirectedGraph();
         testRemoval();
+        testDijkstraUndirectedGraph();
+        testDijkstraDirectedGraph();
 
         System.out.println("\nTodos os testes passaram.");
     }
@@ -227,5 +229,103 @@ public class GraphTestRoutine {
         check(getIds(graph.getNodes()).equals(Arrays.asList("A", "C")), "Os vértices restantes devem ser A e C.");
 
         show("TESTE 7 - Remoção de arco e de vértice com laço", "Após remover A->B e o vértice B: ordem = 2; tamanho = 1; permanece A->C com peso -1.", graph, "A");
+    }
+
+    // Valida somente a seção final para não confundir o custo com as distâncias dos passos.
+    private static void checkDijkstraResult(String report, String path, double expectedCost) {
+        int resultIndex = report.indexOf("\n=== RESULTADO ===\n");
+        check(resultIndex >= 0, "O relatório deve conter a seção de resultado.");
+        String result = report.substring(resultIndex);
+
+        check(result.contains("\nCaminho: " + path + "\n"),
+                "Caminho esperado: " + path + ". Resultado recebido: " + result);
+
+        String costPrefix = "\nCusto total: ";
+        int costIndex = result.indexOf(costPrefix);
+        check(costIndex >= 0, "O resultado deve informar o custo total.");
+        int start = costIndex + costPrefix.length();
+        int end = result.indexOf('\n', start);
+        check(end >= 0, "A linha do custo total deve estar completa.");
+        double actualCost = Double.parseDouble(result.substring(start, end).trim());
+
+        // Uma tolerância evita falhas causadas pela representação binária de decimais.
+        check(Math.abs(actualCost - expectedCost) < 0.000000001,
+                "Custo esperado: " + expectedCost + "; recebido: " + actualCost);
+    }
+
+    private static void showDijkstra(String title, String expected, String report) {
+        System.out.println("\n==================================================");
+        System.out.println(title);
+        System.out.println("Esperado: " + expected);
+        System.out.println(report);
+    }
+
+    private static void testDijkstraUndirectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B", "C", "D");
+        graph.addEdge("A", "B", 4.0);
+        graph.addEdge("A", "C", 1.0);
+        graph.addEdge("C", "B", 2.0);
+        graph.addEdge("B", "D", 1.0);
+        graph.addEdge("C", "D", 7.0);
+        graph.addEdge("A", "D", 10.0);
+
+        String report = graph.dijkstra(graph, "A", "D");
+        checkDijkstraResult(report, "A --> C --> B --> D", 4.0);
+        checkDijkstraResult(graph.dijkstra(graph, "D", "A"), "D --> B --> C --> A", 4.0);
+
+        // O algoritmo deve melhorar a distância inicial de B, de 4 para 3.
+        check(report.contains("Passo 2 | Fechado: C\nDistâncias: A = 0.0 | B = 3.0 | C = 1.0 | D = 8.0\n"),
+                "O segundo passo deve atualizar B para 3.0 e D para 8.0.");
+        check(report.contains("Passo 4 | Fechado: D"), "D deve ser fechado no quarto passo.");
+        check(graph.getOrder() == 4 && graph.getNumEdges() == 6,
+                "Dijkstra não deve alterar a quantidade de vértices ou arestas.");
+        check(graph.getWeight("A", "B") == 4.0 && graph.getWeight("A", "D") == 10.0,
+                "Dijkstra deve preservar os pesos originais.");
+        check(!graph.hasEdge("A", "A") && !graph.hasEdge("D", "D"),
+                "A diagonal da matriz auxiliar não deve criar laços no grafo original.");
+
+        showDijkstra("TESTE 8 - Dijkstra em grafo não orientado",
+                "A --> C --> B --> D; custo = 4.0; grafo original preservado.", report);
+    }
+
+    private static void testDijkstraDirectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(true, true, "A", "B", "C", "D", "E");
+        graph.addEdge("A", "B", 0.0);
+        graph.addEdge("B", "C", 0.1);
+        graph.addEdge("C", "D", 0.2);
+        graph.addEdge("A", "D", 0.5);
+
+        // O caminho com mais arcos deve vencer o arco direto pelo menor custo.
+        String report = graph.dijkstra(graph, "A", "D");
+        checkDijkstraResult(report, "A --> B --> C --> D", 0.3);
+        checkDijkstraResult(graph.dijkstra(graph, "A", "B"), "A --> B", 0.0);
+        checkDijkstraResult(graph.dijkstra(graph, "A", "A"), "A", 0.0);
+
+        // A orientação impede voltar de D até A.
+        String reverseReport = graph.dijkstra(graph, "D", "A");
+        check(reverseReport.contains("\nCaminho: inexistente\n"),
+                "Os arcos não devem permitir um caminho de D até A.");
+        check(reverseReport.contains("\nCusto total: infinito"),
+                "O custo do caminho inexistente deve ser infinito.");
+
+        // E está isolado e deve permanecer inalcançável.
+        String isolatedReport = graph.dijkstra(graph, "A", "E");
+        check(isolatedReport.contains("\nCaminho: inexistente\n"), "E deve ser inalcançável.");
+        check(isolatedReport.contains("\nCusto total: infinito"), "O custo até E deve ser infinito.");
+        check(isolatedReport.contains("Não existe caminho de A até E."),
+                "O relatório deve identificar a origem e o destino sem caminho.");
+        check(!isolatedReport.contains("| Fechado: E\n"),
+                "O vértice inalcançável deve permanecer aberto.");
+
+        check(graph.getOrder() == 5 && graph.getNumEdges() == 4,
+                "Dijkstra não deve alterar a quantidade de vértices ou arcos.");
+        check(!graph.hasEdge("B", "A") && !graph.hasEdge("D", "A"),
+                "Dijkstra não deve criar arcos inversos.");
+        check(graph.getWeight("A", "B") == 0.0 && graph.getWeight("A", "D") == 0.5,
+                "Dijkstra deve preservar os pesos originais.");
+
+        showDijkstra("TESTE 9 - Dijkstra em grafo orientado",
+                "A --> B --> C --> D; custo aproximadamente 0.3; peso zero permitido; "
+                        + "A até A custa zero; D até A e A até E não possuem caminho.", report);
     }
 }
