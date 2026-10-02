@@ -573,27 +573,142 @@ public class AdjMatrixGraph<T> {
         return result;
     }
 
-    //Deixei a validação aqui e não no menu, porque quem sabe se o grafo serve é o próprio grafo
+    // Valida o grafo recebido e calcula os menores caminhos sem alterar a matriz original.
     public String dijkstra(AdjMatrixGraph<T> graph, String src, String dest) {
-
         if (graph == null) {
             throw new IllegalArgumentException("O grafo não pode ser nulo.");
         }
 
-        getNodeIndex(src);
-        getNodeIndex(dest);
+        int sourceIndex = graph.getNodeIndex(src);
+        int destinationIndex = graph.getNodeIndex(dest);
 
-        if (!this.weighted) {
+        if (!graph.isWeighted()) {
             throw new IllegalArgumentException("O algoritmo de Dijkstra exige um grafo ponderado.");
         }
 
-        if (hasNegativeWeights()) {
+        if (graph.hasNegativeWeights()) {
             throw new IllegalArgumentException("O grafo possui pesos negativos, então o algoritmo de Dijkstra não pode ser aplicado.");
         }
 
-        Double [][] distancesMatrix = createDistanceMatrix(graph);
+        Double[][] distancesMatrix = createDistanceMatrix(graph);
+        int order = graph.getOrder();
+        Double[] distances = new Double[order];
+        boolean[] closed = new boolean[order];
+        int[] predecessors = new int[order];
 
-        return "O algoritmo de Dijkstra ainda será implementado.";
+        Arrays.fill(distances, Double.POSITIVE_INFINITY);
+        Arrays.fill(predecessors, -1);
+        distances[sourceIndex] = 0.0;
+
+        StringBuilder result = new StringBuilder("\n=== DIJKSTRA ===\n");
+        result.append("Origem: ").append(src)
+                .append("\nDestino: ").append(dest)
+                .append("\nDesempate: ordem de inserção dos vértices.\n")
+                .append("\n=== REGISTRO DA EXECUÇÃO ===\n")
+                .append("Distâncias desde a origem, após atualizar os vizinhos em cada passo.\n");
+
+        appendDijkstraStep(result, graph, 0, -1, distances, closed);
+        int step = 1;
+
+        while (true) {
+            int current = selectClosestOpenVertex(distances, closed);
+
+            // Não existem mais vértices abertos alcançáveis pela origem.
+            if (current == -1) {
+                break;
+            }
+
+            closed[current] = true;
+
+            for (int next = 0; next < order; next++) {
+                double weight = distancesMatrix[current][next];
+
+                if (closed[next] || Double.isInfinite(weight)) {
+                    continue;
+                }
+
+                double candidateDistance = distances[current] + weight;
+
+                if (Double.isInfinite(candidateDistance)) {
+                    throw new IllegalArgumentException("A soma dos custos ultrapassou o limite de double. Não foi possível concluir o cálculo.");
+                }
+
+                if (candidateDistance < distances[next]) {
+                    distances[next] = candidateDistance;
+                    predecessors[next] = current;
+                }
+            }
+
+            appendDijkstraStep(result, graph, step, current, distances, closed);
+            step++;
+        }
+
+        result.append("\n=== RESULTADO ===\n")
+                .append("Origem: ").append(src)
+                .append("\nDestino: ").append(dest);
+
+        if (Double.isInfinite(distances[destinationIndex])) {
+            result.append("\nCaminho: inexistente")
+                    .append("\nCusto total: infinito ")
+                    .append("\nNão existe caminho de ").append(src).append(" até ").append(dest).append(".\n");
+            return result.toString();
+        }
+
+        result.append("\nCaminho: ").append(reconstructDijkstraPath(graph, destinationIndex, predecessors))
+                .append("\nCusto total: ").append(distances[destinationIndex]).append("\n");
+        return result.toString();
+    }
+
+    // Em caso de empate, mantém o primeiro vértice na ordem de inserção.
+    private int selectClosestOpenVertex(Double[] distances, boolean[] closed) {
+        int selected = -1;
+        double shortestDistance = Double.POSITIVE_INFINITY;
+
+        for (int i = 0; i < distances.length; i++) {
+            if (!closed[i] && distances[i] < shortestDistance) {
+                selected = i;
+                shortestDistance = distances[i];
+            }
+        }
+
+        return selected;
+    }
+
+    // Registra o fechamento, todas as distâncias e os vértices ainda abertos.
+    private void appendDijkstraStep(StringBuilder result, AdjMatrixGraph<T> graph,
+                                    int step, int current, Double[] distances, boolean[] closed) {
+        result.append("\nPasso ").append(step)
+                .append(" | Fechado: ").append(current == -1 ? "nenhum (inicialização)" : graph.nodes.get(current).getId())
+                .append("\nDistâncias: ");
+
+        List<Node<T>> openNodes = new ArrayList<>();
+
+        for (int i = 0; i < distances.length; i++) {
+            if (i > 0) {
+                result.append(" | ");
+            }
+
+            result.append(graph.nodes.get(i).getId()).append(" = ")
+                    .append(Double.isInfinite(distances[i]) ? "infinito" : distances[i].toString());
+
+            if (!closed[i]) {
+                openNodes.add(graph.nodes.get(i));
+            }
+        }
+
+        result.append("\nAbertos: ").append(formatNodes(openNodes)).append("\n");
+    }
+
+    // Percorre os predecessores do destino à origem e inverte a sequência.
+    private String reconstructDijkstraPath(AdjMatrixGraph<T> graph, int destinationIndex, int[] predecessors) {
+        List<String> path = new ArrayList<>();
+
+        for (int current = destinationIndex; current != -1; current = predecessors[current]) {
+            path.add(graph.nodes.get(current).getId());
+        }
+
+        Collections.reverse(path);
+        return String.join(" → ", path);
     }
 
     private String formatNodes(List<Node<T>> selected) {

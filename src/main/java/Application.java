@@ -6,7 +6,7 @@ import java.util.Scanner;
 
 public class Application {
     private final Scanner scanner;
-    private AdjMatrixGraph<Double> graph;
+    private AdjMatrixGraph<String> graph;
     private boolean running;
 
     public Application() {
@@ -103,7 +103,7 @@ public class Application {
             return;
         }
 
-        this.graph = new AdjMatrixGraph<Double>(new ArrayList<Node<Double>>(), directed, weighted);
+        this.graph = new AdjMatrixGraph<String>(new ArrayList<Node<String>>(), directed, weighted);
 
         //Se quiser depois pode alterar, mas por enquanto deixei ternário mesmo
         System.out.println("Grafo " + (directed ? "orientado" : "não orientado")
@@ -172,22 +172,9 @@ public class Application {
             return;
         }
 
-        String input = read("Valor numérico do vértice: ");
+        String value = read("Valor do vértice: ");
 
         if (!this.running) {
-            return;
-        }
-
-        double value;
-        try {
-            value = Double.parseDouble(input.replace(',', '.'));
-        } catch (NumberFormatException exception) {
-            System.out.println("Valor inválido. Informe um número.");
-            return;
-        }
-
-        if (!Double.isFinite(value)) {
-            System.out.println("Valor inválido. Informe um número finito.");
             return;
         }
 
@@ -203,7 +190,7 @@ public class Application {
 
         System.out.println("\nVértices disponíveis:");
 
-        for (Node<Double> node : this.graph.getNodes()) {
+        for (Node<String> node : this.graph.getNodes()) {
             System.out.println(node);
         }
 
@@ -251,7 +238,7 @@ public class Application {
 
         System.out.println("\nVértices disponíveis:");
 
-        for (Node<Double> node : this.graph.getNodes()) {
+        for (Node<String> node : this.graph.getNodes()) {
             System.out.println(node);
         }
 
@@ -273,7 +260,7 @@ public class Application {
 
         System.out.println("\nVértices disponíveis:");
 
-        for (Node<Double> node : this.graph.getNodes()) {
+        for (Node<String> node : this.graph.getNodes()) {
             System.out.println(node);
         }
 
@@ -328,7 +315,7 @@ public class Application {
 
         System.out.println("\nVértices disponíveis:");
 
-        for (Node<Double> node : this.graph.getNodes()) {
+        for (Node<String> node : this.graph.getNodes()) {
             System.out.println(node);
         }
 
@@ -353,7 +340,7 @@ public class Application {
         if (this.graph.isDirected() && this.graph.getNumNodes() > 0) {
             System.out.println("\nVértices disponíveis:");
 
-            for (Node<Double> node : this.graph.getNodes()) {
+            for (Node<String> node : this.graph.getNodes()) {
                 System.out.println(node);
             }
 
