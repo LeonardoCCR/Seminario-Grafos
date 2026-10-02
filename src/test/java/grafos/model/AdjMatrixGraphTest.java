@@ -354,7 +354,7 @@ class AdjMatrixGraphTest {
         assertTrue(info.contains("Vértice A: grau 3"));
         assertTrue(info.contains("Laços: A → A, B → B"));
         assertTrue(info.contains("Vértices isolados: [C]"));
-        assertTrue(info.contains("1.6.3 — Simples - Não, é um multigrafo"));
+        assertTrue(info.contains("1.6.3 — Simples - Não -> pois é um multigrafo"));
         assertTrue(info.contains("1.6.6 — Bipartido - Não"));
         assertTrue(info.contains("Não se aplica a grafos não orientados."));
         assertFalse(info.contains("Escolha uma opção"));
