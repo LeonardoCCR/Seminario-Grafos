@@ -289,12 +289,16 @@ public class Application {
         while (this.running) {
             System.out.println("\n=== ALGORITMOS ===");
             System.out.println("1.7.1 - Dijkstra (caminho mínimo)");
+            System.out.println("1.7.3 - Prim (árvore geradora mínima)");
             System.out.println("0 - Voltar ao menu do grafo");
 
             try {
                 switch (read("Escolha uma opção: ")) {
                     case "1.7.1":
                         printShortestPath();
+                        break;
+                    case "1.7.3":
+                        printPrim();
                         break;
                     case "0":
                         return;
@@ -332,6 +336,15 @@ public class Application {
         }
 
         System.out.println(this.graph.dijkstra(this.graph, src, dest));
+    }
+
+    private void printPrim() {
+        if (this.graph.getNumNodes() == 0) {
+            System.out.println("O grafo não possui vértices.");
+            return;
+        }
+
+        System.out.println(this.graph.prim());
     }
 
     private void printInformation() {
