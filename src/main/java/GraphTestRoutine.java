@@ -17,6 +17,12 @@ public class GraphTestRoutine {
         testRemoval();
         testDijkstraUndirectedGraph();
         testDijkstraDirectedGraph();
+        testPrimConnectedGraph();
+        testPrimTiedWeights();
+        testPrimLoopAndParallelEdge();
+        testPrimDisconnectedGraph();
+        testPrimDirectedGraph();
+        testPrimSingleNodeGraph();
 
         System.out.println("\nTodos os testes passaram.");
     }
@@ -232,6 +238,141 @@ public class GraphTestRoutine {
     }
 
     // Valida somente a seção final para não confundir o custo com as distâncias dos passos.
+    private static void checkPrimResult(String report, int expectedEdges, double expectedWeight) {
+        int resultIndex = report.indexOf("\n=== RESULTADO ===\n");
+        check(resultIndex >= 0, "O relatório deve conter a seção de resultado.");
+        String result = report.substring(resultIndex);
+
+        check(result.contains("\nTotal de arestas: " + expectedEdges + "\n"),
+                "Total de arestas esperado: " + expectedEdges + ". Resultado recebido: " + result);
+
+        String weightPrefix = "\nPeso total: ";
+        int weightIndex = result.indexOf(weightPrefix);
+        check(weightIndex >= 0, "O resultado deve informar o peso total.");
+        int start = weightIndex + weightPrefix.length();
+        int end = result.indexOf('\n', start);
+        check(end >= 0, "A linha do peso total deve estar completa.");
+        double actualWeight = Double.parseDouble(result.substring(start, end).trim());
+
+        // Uma tolerância evita falhas causadas pela representação binária de decimais.
+        check(Math.abs(actualWeight - expectedWeight) < 0.000000001,
+                "Peso esperado: " + expectedWeight + "; recebido: " + actualWeight);
+    }
+
+    private static void showPrim(String title, String expected, String report) {
+        System.out.println("\n==================================================");
+        System.out.println(title);
+        System.out.println("Esperado: " + expected);
+        System.out.println(report);
+    }
+
+    private static void testPrimConnectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B", "C", "D");
+        graph.addEdge("A", "B", 1.0);
+        graph.addEdge("B", "C", 2.0);
+        graph.addEdge("A", "C", 5.0);
+        graph.addEdge("C", "D", 3.0);
+        graph.addEdge("B", "D", 10.0);
+
+        String report = graph.prim();
+        checkPrimResult(report, 3, 6.0);
+
+        // As arestas caras precisam ficar de fora da árvore.
+        check(report.contains("A -- B (peso 1.0)"), "A aresta de peso 1.0 deve entrar na árvore.");
+        check(!report.contains("(peso 10.0)"), "A aresta de peso 10.0 não deve entrar na árvore.");
+        check(report.contains("Árvore geradora mínima com 1 componente."),
+                "Um grafo conexo deve gerar uma única árvore.");
+
+        check(graph.getOrder() == 4 && graph.getNumEdges() == 5,
+                "Prim não deve alterar a quantidade de vértices ou arestas.");
+        check(graph.getWeight("B", "D") == 10.0, "Prim deve preservar os pesos originais.");
+
+        showPrim("TESTE 10 - Prim em grafo conexo com peso conhecido",
+                "três arestas; peso total = 6.0; grafo original preservado.", report);
+    }
+
+    private static void testPrimTiedWeights() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B", "C");
+        graph.addEdge("A", "B", 2.0);
+        graph.addEdge("B", "C", 2.0);
+        graph.addEdge("A", "C", 2.0);
+
+        // Com todos os pesos iguais o desempate muda as arestas, mas nunca o peso total.
+        String report = graph.prim();
+        checkPrimResult(report, 2, 4.0);
+
+        showPrim("TESTE 11 - Prim com empate de pesos",
+                "duas arestas quaisquer; peso total = 4.0 independente do desempate.", report);
+    }
+
+    private static void testPrimLoopAndParallelEdge() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B", "C");
+        graph.addEdge("A", "A", 99.0);
+        graph.addEdge("A", "B", 1.0);
+        graph.addEdge("B", "C", 2.0);
+
+        // A matriz guarda um único peso por par, então a segunda aresta é recusada.
+        try {
+            graph.addEdge("A", "B", 50.0);
+            check(false, "A matriz de adjacências não deveria aceitar uma segunda aresta entre A e B.");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().contains("não permite multiarestas"),
+                    "A mensagem deve explicar que a representação não permite multiarestas.");
+        }
+
+        String report = graph.prim();
+        checkPrimResult(report, 2, 3.0);
+        check(!report.contains("(peso 99.0)"), "O laço não pode entrar na árvore geradora mínima.");
+
+        showPrim("TESTE 12 - Prim com laço e tentativa de aresta paralela",
+                "laço de peso 99.0 ignorado; aresta paralela recusada pela matriz; peso total = 3.0.", report);
+    }
+
+    private static void testPrimDisconnectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B", "C", "D", "E");
+        graph.addEdge("A", "B", 1.0);
+        graph.addEdge("C", "D", 4.0);
+
+        // Sem ligação entre os componentes o resultado é uma floresta, não uma árvore.
+        String report = graph.prim();
+        checkPrimResult(report, 2, 5.0);
+        check(report.contains("Floresta geradora mínima com 3 componentes."),
+                "Os três componentes devem ser identificados.");
+        check(report.contains("Nenhuma aresta (vértice isolado)."),
+                "O vértice isolado deve aparecer como um componente sem arestas.");
+
+        showPrim("TESTE 13 - Prim em grafo desconexo",
+                "floresta com três componentes; duas arestas; peso total = 5.0; E isolado.", report);
+    }
+
+    private static void testPrimDirectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(true, true, "A", "B");
+        graph.addEdge("A", "B", 1.0);
+
+        try {
+            graph.prim();
+            check(false, "Prim não deveria aceitar um grafo orientado.");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().contains("não se aplica a grafos orientados"),
+                    "A mensagem deve informar que a árvore geradora mínima não se aplica a dígrafos.");
+        }
+
+        System.out.println("\n==================================================");
+        System.out.println("TESTE 14 - Prim em grafo orientado");
+        System.out.println("Esperado: o sistema informa que a funcionalidade não se aplica.");
+        System.out.println("A árvore geradora mínima não se aplica a grafos orientados.");
+    }
+
+    private static void testPrimSingleNodeGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A");
+
+        String report = graph.prim();
+        checkPrimResult(report, 0, 0.0);
+
+        showPrim("TESTE 15 - Prim em grafo com um único vértice",
+                "nenhuma aresta; peso total = 0.0.", report);
+    }
+
     private static void checkDijkstraResult(String report, String path, double expectedCost) {
         int resultIndex = report.indexOf("\n=== RESULTADO ===\n");
         check(resultIndex >= 0, "O relatório deve conter a seção de resultado.");
