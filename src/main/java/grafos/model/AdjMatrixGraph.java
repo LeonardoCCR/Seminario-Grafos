@@ -750,6 +750,99 @@ public class AdjMatrixGraph<T> {
         return distances;
     }
 
+    //Prim vai crescendo a árvore a partir de um vértice, sempre pegando a aresta
+    //mais barata que sai de quem já entrou para quem ainda está de fora.
+    //Se o grafo for desconexo eu recomeço em cada componente, aí o resultado vira uma floresta.
+    public String prim() {
+        if (this.directed) {
+            throw new IllegalArgumentException("A árvore geradora mínima não se aplica a grafos orientados.");
+        }
+
+        if (!this.weighted) {
+            throw new IllegalArgumentException("A árvore geradora mínima exige um grafo ponderado.");
+        }
+
+        StringBuilder result = new StringBuilder("\n=== PRIM ===\n");
+        result.append("Desempate: ordem de inserção dos vértices.\n");
+
+        if (this.numNodes == 0) {
+            result.append("\nO grafo não possui vértices.\n");
+            return result.toString();
+        }
+
+        boolean[] inTree = new boolean[this.numNodes];
+        StringBuilder components = new StringBuilder();
+        double totalWeight = 0.0;
+        int numComponents = 0;
+        int numTreeEdges = 0;
+
+        for (int start = 0; start < this.numNodes; start++) {
+            if (inTree[start]) {
+                continue;
+            }
+
+            ++numComponents;
+            List<Integer> current = new ArrayList<>();
+            current.add(start);
+            inTree[start] = true;
+
+            components.append("\nComponente ").append(numComponents)
+                    .append(" (a partir de ").append(this.nodes.get(start).getId()).append("):\n");
+            int componentEdges = 0;
+
+            while (true) {
+                int bestSrc = -1;
+                int bestDest = -1;
+                double bestWeight = 0.0;
+
+                for (int i : current) {
+                    for (int j = 0; j < this.numNodes; j++) {
+                        // pulo o laço e quem já está na árvore
+                        if (i == j || inTree[j] || this.adjacencyMatrix[i][j] == WITHOUT_EDGE) {
+                            continue;
+                        }
+
+                        double weight = this.adjacencyMatrix[i][j];
+
+                        if (bestSrc == -1 || weight < bestWeight) {
+                            bestSrc = i;
+                            bestDest = j;
+                            bestWeight = weight;
+                        }
+                    }
+                }
+
+                // acabaram as arestas que saem deste componente
+                if (bestSrc == -1) {
+                    break;
+                }
+
+                inTree[bestDest] = true;
+                current.add(bestDest);
+                totalWeight += bestWeight;
+                ++numTreeEdges;
+                ++componentEdges;
+
+                components.append(this.nodes.get(bestSrc).getId()).append(" -- ")
+                        .append(this.nodes.get(bestDest).getId())
+                        .append(" (peso ").append(bestWeight).append(")\n");
+            }
+
+            if (componentEdges == 0) {
+                components.append("Nenhuma aresta (vértice isolado).\n");
+            }
+        }
+
+        result.append("\n=== RESULTADO ===\n");
+        result.append(numComponents == 1 ? "Árvore geradora mínima" : "Floresta geradora mínima")
+                .append(" com ").append(numComponents)
+                .append(numComponents == 1 ? " componente." : " componentes.").append("\n");
+        result.append(components);
+        result.append("\nTotal de arestas: ").append(numTreeEdges)
+                .append("\nPeso total: ").append(totalWeight).append("\n");
+        return result.toString();
+    }
+
     public String getDegreesInformation() {
         StringBuilder result = new StringBuilder();
         if (this.numNodes == 0) {
