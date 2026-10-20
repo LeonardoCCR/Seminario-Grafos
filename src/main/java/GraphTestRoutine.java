@@ -120,7 +120,7 @@ public class GraphTestRoutine {
         check(!graph.isBipartite(), "Um grafo com laço não deve ser bipartido.");
         check(!graph.isComplete(), "Um grafo com laço não deve ser completo.");
 
-        show("TESTE 3 - Grafo ponderado com laço", "Laço em A; Grau de A = 3; Tamanho = 2; Simples = Não (multigrafo); Bipartido = Não.", graph, null);
+        show("TESTE 3 - Grafo ponderado com laço", "Laço em A; Grau de A = 3; Tamanho = 2; Simples = Não (por causa do laço); Bipartido = Não.", graph, null);
 
         try {
             graph.addEdge("B", "A", 9.0);

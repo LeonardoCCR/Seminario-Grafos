@@ -906,7 +906,10 @@ public class AdjMatrixGraph<T> {
                 .append("\nTipo: ").append(this.directed ? "Orientado" : "Não orientado")
                 .append(this.weighted ? " e ponderado" : " e não ponderado");
         result.append("\n\n1.6.2 — Grau dos Vértices:\n").append(getDegreesInformation());
-        result.append("\n\n1.6.3 — Simples - ").append(isSimple() ? "Sim" : "Não -> pois é um multigrafo");
+        //Pelos slides, simples é não ter laço nem aresta múltipla, e multigrafo é ter aresta múltipla.
+        //Como a matriz não guarda duas arestas no mesmo par, aqui o grafo só deixa de ser simples por causa de laço.
+        result.append("\n\n1.6.3 — Simples - ").append(isSimple() ? "Sim" : "Não -> pois possui laço")
+                .append("\n1.6.3 — Multigrafo - Não -> a matriz de adjacências não permite arestas múltiplas");
         result.append("\n1.6.4 — Regular - ").append(formatBoolean(isRegular()));
         result.append("\n1.6.5 — Completo - ").append(formatBoolean(isComplete()));
         result.append("\n1.6.6 — Bipartido - ")
