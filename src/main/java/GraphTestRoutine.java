@@ -23,6 +23,12 @@ public class GraphTestRoutine {
         testPrimDisconnectedGraph();
         testPrimDirectedGraph();
         testPrimSingleNodeGraph();
+        testKruskalConnectedGraph();
+        testKruskalTiedWeights();
+        testKruskalLoopAndParallelEdge();
+        testKruskalDisconnectedGraph();
+        testKruskalDirectedGraph();
+        testKruskalSingleNodeGraph();
 
         System.out.println("\nTodos os testes passaram.");
     }
@@ -469,4 +475,100 @@ public class GraphTestRoutine {
                 "A --> B --> C --> D; custo aproximadamente 0.3; peso zero permitido; "
                         + "A até A custa zero; D até A e A até E não possuem caminho.", report);
     }
+
+    private static void testKruskalConnectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B", "C", "D");
+        graph.addEdge("A", "B", 1.0);
+        graph.addEdge("B", "C", 2.0);
+        graph.addEdge("A", "C", 5.0);
+        graph.addEdge("C", "D", 3.0);
+        graph.addEdge("B", "D", 10.0);
+
+        String report = graph.kruskal();
+        checkPrimResult(report, 3, 6.0);
+        checkPrimResult(graph.prim(), 3, 6.0);
+        check(report.contains("A -- B (peso 1.0)"), "Kruskal deve escolher A-B.");
+        check(report.contains("B -- C (peso 2.0)"), "Kruskal deve escolher B-C.");
+        check(report.contains("C -- D (peso 3.0)"), "Kruskal deve escolher C-D.");
+        check(!report.contains("(peso 10.0)"), "Kruskal não deve escolher a aresta cara.");
+        check(graph.getNumEdges() == 5 && graph.getWeight("B", "D") == 10.0,
+                "Kruskal deve preservar o grafo original.");
+        showPrim("TESTE 16 - Kruskal em grafo conexo", "três arestas; peso 6.0; mesmo peso de Prim.", report);
+    }
+
+    private static void testKruskalTiedWeights() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B", "C", "D");
+        graph.addEdge("A", "B", 1.0);
+        graph.addEdge("A", "C", 1.0);
+        graph.addEdge("B", "D", 1.0);
+        graph.addEdge("C", "D", 1.0);
+
+        String report = graph.kruskal();
+        checkPrimResult(report, 3, 3.0);
+        checkPrimResult(graph.prim(), 3, 3.0);
+        showPrim("TESTE 17 - Kruskal com empate", "três arestas; peso 3.0 em ambos os algoritmos.", report);
+    }
+
+    private static void testKruskalLoopAndParallelEdge() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B", "C");
+        graph.addEdge("A", "A", -100.0);
+        graph.addEdge("A", "B", 1.0);
+        graph.addEdge("B", "C", 2.0);
+
+        try {
+            graph.addEdge("A", "B", 50.0);
+            throw new AssertionError("Arestas paralelas devem continuar proibidas.");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().contains("não permite multiarestas"),
+                    "A mensagem deve explicar a restrição de multiarestas.");
+        }
+
+        String report = graph.kruskal();
+        checkPrimResult(report, 2, 3.0);
+        checkPrimResult(graph.prim(), 2, 3.0);
+        check(!report.contains("(peso -100.0)"), "Kruskal deve ignorar o laço.");
+        check(graph.getNumEdges() == 3, "A tentativa de aresta paralela não deve alterar o grafo.");
+        showPrim("TESTE 18 - Kruskal com laço e aresta paralela recusada",
+                "laço ignorado; paralela recusada; peso 3.0.", report);
+    }
+
+    private static void testKruskalDisconnectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B", "C", "D", "E");
+        graph.addEdge("A", "B", 1.0);
+        graph.addEdge("C", "D", 4.0);
+
+        String report = graph.kruskal();
+        checkPrimResult(report, 2, 5.0);
+        checkPrimResult(graph.prim(), 2, 5.0);
+        check(report.contains("Floresta geradora mínima com 3 componentes."),
+                "Kruskal deve identificar os três componentes.");
+        check(report.contains("Nenhuma aresta (vértice isolado)."),
+                "Kruskal deve exibir o vértice isolado.");
+        showPrim("TESTE 19 - Kruskal em grafo desconexo", "três componentes; peso 5.0.", report);
+    }
+
+    private static void testKruskalDirectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(true, true, "A", "B");
+        graph.addEdge("A", "B", 1.0);
+
+        try {
+            graph.kruskal();
+            throw new AssertionError("Kruskal não deveria aceitar um grafo orientado.");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().contains("não se aplica a grafos orientados"),
+                    "Kruskal deve informar que a funcionalidade não se aplica.");
+        }
+        System.out.println("\nTESTE 20 - Kruskal em grafo orientado: rejeição correta.");
+    }
+
+    private static void testKruskalSingleNodeGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, true, "A");
+        String report = graph.kruskal();
+        checkPrimResult(report, 0, 0.0);
+        checkPrimResult(graph.prim(), 0, 0.0);
+        check(report.contains("Nenhuma aresta (vértice isolado)."),
+                "A AGM de um único vértice deve ser vazia.");
+        showPrim("TESTE 21 - Kruskal com um vértice", "zero arestas; peso 0.0.", report);
+    }
+
 }
