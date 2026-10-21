@@ -289,8 +289,8 @@ public class Application {
         while (this.running) {
             System.out.println("\n=== ALGORITMOS ===");
             System.out.println("1.7.1 - Dijkstra (caminho mínimo)");
+            System.out.println("1.7.2 - Kruskal (árvore geradora mínima)");
             System.out.println("1.7.3 - Prim (árvore geradora mínima)");
-            System.out.println("1.7.4 - Kruskal (árvore geradora mínima)");
             System.out.println("0 - Voltar ao menu do grafo");
 
             try {
@@ -298,11 +298,11 @@ public class Application {
                     case "1.7.1":
                         printShortestPath();
                         break;
+                    case "1.7.2":
+                        printKruskal();
+                        break;
                     case "1.7.3":
                         printPrim();
-                        break;
-                    case "1.7.4":
-                        printKruskal();
                         break;
                     case "0":
                         return;
