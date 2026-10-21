@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -841,6 +842,93 @@ public class AdjMatrixGraph<T> {
         result.append("\nTotal de arestas: ").append(numTreeEdges)
                 .append("\nPeso total: ").append(totalWeight).append("\n");
         return result.toString();
+    }
+
+
+    public String kruskal() {
+        if (this.directed) {
+            throw new IllegalArgumentException("A árvore geradora mínima não se aplica a grafos orientados.");
+        }
+
+        if (!this.weighted) {
+            throw new IllegalArgumentException("A árvore geradora mínima exige um grafo ponderado.");
+        }
+
+        List<int[]> edges = new ArrayList<>();
+        for (int i = 0; i < this.numNodes; i++) {
+            for (int j = i + 1; j < this.numNodes; j++) {
+                if (this.adjacencyMatrix[i][j] != WITHOUT_EDGE) {
+                    edges.add(new int[]{i, j});
+                }
+            }
+        }
+
+        edges.sort(Comparator.comparingDouble(edge -> this.adjacencyMatrix[edge[0]][edge[1]]));
+
+        int[] parent = new int[this.numNodes];
+        for (int i = 0; i < this.numNodes; i++) {
+            parent[i] = i;
+        }
+
+        List<int[]> selectedEdges = new ArrayList<>();
+        double totalWeight = 0.0;
+
+        for (int[] edge : edges) {
+            int sourceRoot = findKruskalRoot(parent, edge[0]);
+            int destinationRoot = findKruskalRoot(parent, edge[1]);
+
+            if (sourceRoot == destinationRoot) {
+                continue;
+            }
+
+            parent[sourceRoot] = destinationRoot;
+            selectedEdges.add(edge);
+            totalWeight += this.adjacencyMatrix[edge[0]][edge[1]];
+        }
+
+        Map<Integer, List<Integer>> components = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < this.numNodes; i++) {
+            int root = findKruskalRoot(parent, i);
+            components.computeIfAbsent(root, key -> new ArrayList<>()).add(i);
+        }
+
+        int numComponents = components.size();
+        StringBuilder result = new StringBuilder("\n=== KRUSKAL ===\n");
+        result.append("Desempate: ordem de inserção dos vértices.\n")
+                .append("\n=== RESULTADO ===\n")
+                .append(numComponents == 1 ? "Árvore geradora mínima" : "Floresta geradora mínima")
+                .append(" com ").append(numComponents)
+                .append(numComponents == 1 ? " componente.\n" : " componentes.\n");
+
+        int componentNumber = 0;
+        for (List<Integer> component : components.values()) {
+            ++componentNumber;
+            result.append("\nComponente ").append(componentNumber)
+                    .append(" (a partir de ").append(this.nodes.get(component.get(0)).getId()).append("):\n");
+            int componentEdges = 0;
+            for (int[] edge : selectedEdges) {
+                if (findKruskalRoot(parent, edge[0]) == findKruskalRoot(parent, component.get(0))) {
+                    result.append(this.nodes.get(edge[0]).getId()).append(" -- ")
+                            .append(this.nodes.get(edge[1]).getId())
+                            .append(" (peso ").append(this.adjacencyMatrix[edge[0]][edge[1]]).append(")\n");
+                    ++componentEdges;
+                }
+            }
+            if (componentEdges == 0) {
+                result.append("Nenhuma aresta (vértice isolado).\n");
+            }
+        }
+
+        result.append("\nTotal de arestas: ").append(selectedEdges.size())
+                .append("\nPeso total: ").append(totalWeight).append("\n");
+        return result.toString();
+    }
+
+    private int findKruskalRoot(int[] parent, int vertex) {
+        if (parent[vertex] != vertex) {
+            parent[vertex] = findKruskalRoot(parent, parent[vertex]);
+        }
+        return parent[vertex];
     }
 
     public String getDegreesInformation() {
