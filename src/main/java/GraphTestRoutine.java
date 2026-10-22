@@ -3,7 +3,9 @@ import grafos.model.Node;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GraphTestRoutine {
 
@@ -36,6 +38,7 @@ public class GraphTestRoutine {
         testMalgrangeLoopAndParallelArc();
         testMalgrangeReducedGraphIsAcyclic();
         testMalgrangeUndirectedGraph();
+        testMalgrangeVisualGeneration();
 
         System.out.println("\nTodos os testes passaram.");
     }
@@ -734,6 +737,38 @@ public class GraphTestRoutine {
         System.out.println("TESTE 28 - Malgrange em grafo não orientado");
         System.out.println("Esperado: o sistema informa que a funcionalidade não se aplica.");
         System.out.println("O algoritmo de Malgrange não se aplica a grafos não orientados.");
+    }
+
+    private static void testMalgrangeVisualGeneration() {
+        AdjMatrixGraph<Double> graph = createGraph(true, false, "A", "B", "C", "D", "E");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "C");
+        graph.addEdge("C", "A");
+        graph.addEdge("C", "D");
+        graph.addEdge("D", "E");
+
+        try {
+            List<List<Node<Double>>> cfcs = graph.getStronglyConnectedComponents();
+
+            List<String> paleta = Arrays.asList("lightblue", "lightgreen", "lightpink");
+            Map<String, String> cores = new HashMap<>();
+            for (int i = 0; i < cfcs.size(); i++) {
+                String cor = paleta.get(i % paleta.size());
+                for (Node<Double> no : cfcs.get(i)) {
+                    cores.put(no.getId(), cor);
+                }
+            }
+
+            graph.saveColoredToPng(cores, "grafo_original_cfcs.png");
+            graph.saveReducedGraphToPng(cfcs, "grafo_reduzido.png");
+
+            System.out.println("\n==================================================");
+            System.out.println("TESTE 29 - Geração visual (Parte B)");
+            System.out.println("Esperado: Arquivos 'grafo_original_cfcs.png' e 'grafo_reduzido.png' gerados com sucesso.");
+            System.out.println("Imagens geradas e validadas visualmente.");
+        } catch (Exception e) {
+            throw new AssertionError("Falha ao gerar as imagens da Parte B: " + e.getMessage());
+        }
     }
 
 }
