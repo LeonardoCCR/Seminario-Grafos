@@ -1176,6 +1176,7 @@ public class AdjMatrixGraph<T> {
         result.append("\n\n1.6.2 — Grau dos Vértices:\n").append(getDegreesInformation());
         //Pelos slides, simples é não ter laço nem aresta múltipla, e multigrafo é ter aresta múltipla.
         //Como a matriz não guarda duas arestas no mesmo par, aqui o grafo só deixa de ser simples por causa de laço.
+        //obs: Lembrar de conferir então depois sobre o kruskal <<<<
         result.append("\n\n1.6.3 — Simples - ").append(isSimple() ? "Sim" : "Não -> pois possui laço")
                 .append("\n1.6.3 — Multigrafo - Não -> a matriz de adjacências não permite arestas múltiplas");
         result.append("\n1.6.4 — Regular - ").append(formatBoolean(isRegular()));
@@ -1202,5 +1203,119 @@ public class AdjMatrixGraph<T> {
                     .append("\nInverso: ").append(formatNodes(getInverseTransitiveClosure(closureNodeId)));
         }
         return result.toString();
+    }
+
+    //Para gerar a representação DOT,
+    public String toDotString(Map<String, String> nodeColors) {
+        StringBuilder dot = new StringBuilder();
+        //mais fácil com string buikder
+
+        dot.append(this.directed ? "digraph G {\n" : "graph G {\n");
+
+        // Adicionar os nós, vértices isolados tbm
+        for (Node<T> node : this.nodes) {
+            String id = node.getId();
+            dot.append("    ").append(id);
+
+            if (nodeColors != null && nodeColors.containsKey(id)) {
+                dot.append(" [style=filled, fillcolor=").append(nodeColors.get(id)).append("]");
+            }
+            dot.append(";\n");
+        }
+
+        // Adiciona as arestas/arcos
+        boolean[][] visited = new boolean[this.numNodes][this.numNodes];
+        String edgeOperator = this.directed ? " -> " : " -- ";
+
+        for (int i = 0; i < this.numNodes; i++) {
+            for (int j = 0; j < this.numNodes; j++) {
+                if (this.adjacencyMatrix[i][j] == WITHOUT_EDGE) {
+                    continue;
+                }
+
+                // não precisa visitar duas vezes a mesma posição nos orientados
+                if (!this.directed && visited[j][i]) {
+                    continue;
+                }
+
+                visited[i][j] = true;
+
+                String srcId = this.nodes.get(i).getId();
+                String destId = this.nodes.get(j).getId();
+                double weight = this.adjacencyMatrix[i][j];
+
+                dot.append("    ").append(srcId).append(edgeOperator).append(destId);
+
+                if (this.weighted) {
+                    dot.append(" [label=\"").append(weight).append("\"]");
+                }
+                dot.append(";\n");
+            }
+        }
+
+        dot.append("}\n");
+        return dot.toString();
+    }
+
+
+    public String toDotString() {
+        return toDotString(null);
+    }
+
+    //Função para salvar o grafo >> passar o path, (salva a imagem em PNG)
+    public void saveToPng(String filePath) throws java.io.IOException {
+        br.com.davesmartins.api.Graph.createStringDotToPng(toDotString(), filePath);
+    }
+
+    //Dar cor para os vertices
+    public void saveColoredToPng(Map<String, String> nodeColors, String filePath) throws java.io.IOException {
+        br.com.davesmartins.api.Graph.createStringDotToPng(toDotString(nodeColors), filePath);
+    }
+
+    //Função para gerar o grafo reduzido, retorna uma PNG do grafo
+    public void saveReducedGraphToPng(List<List<Node<T>>> components, String filePath) throws java.io.IOException {
+        StringBuilder dot = new StringBuilder("digraph G {\n");
+
+        // Mapeia cada vértice original para o índice da sua componente
+        Map<String, String> superNodeLabels = new HashMap<>();
+        int cIndex = 1;
+        for (List<Node<T>> comp : components) {
+            String superNodeId = "S" + cIndex;
+            StringBuilder label = new StringBuilder("{");
+            for (int i = 0; i < comp.size(); i++) {
+                if (i > 0) label.append(", ");
+                label.append(comp.get(i).getId());
+            }
+            label.append("}");
+
+            superNodeLabels.put(superNodeId, label.toString());
+            dot.append("    ").append(superNodeId).append(" [label=\"").append(superNodeId).append(": ").append(label).append("\", style=filled, fillcolor=lightgrey];\n");
+            cIndex++;
+        }
+
+        // >> Para pegar os arcos arcos entre as componentes
+        int[] componentOf = new int[this.numNodes];
+        for (int c = 0; c < components.size(); c++) {
+            for (Node<T> node : components.get(c)) {
+                componentOf[getNodeIndex(node.getId())] = c + 1;
+            }
+        }
+
+        boolean[][] usedArcs = new boolean[components.size() + 1][components.size() + 1];
+        for (int i = 0; i < this.numNodes; i++) {
+            for (int j = 0; j < this.numNodes; j++) {
+                if (this.adjacencyMatrix[i][j] == WITHOUT_EDGE) continue;
+                int fromComp = componentOf[i];
+                int toComp = componentOf[j];
+
+                if (fromComp != toComp && !usedArcs[fromComp][toComp]) {
+                    usedArcs[fromComp][toComp] = true;
+                    dot.append("    S").append(fromComp).append(" -> S").append(toComp).append(";\n");
+                }
+            }
+        }
+
+        dot.append("}\n");
+        br.com.davesmartins.api.Graph.createStringDotToPng(dot.toString(), filePath);
     }
 }
