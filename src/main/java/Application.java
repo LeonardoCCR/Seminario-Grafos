@@ -1,7 +1,12 @@
 import grafos.model.AdjMatrixGraph;
 import grafos.model.Node;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class Application {
@@ -123,7 +128,7 @@ public class Application {
             System.out.println("1.6 - Informações do Grafo");
             System.out.println("1.7 - Algoritmos");
             // System.out.println("1.8 - Salvar Grafo em Disco");
-            // System.out.println("1.9 - Gerar Imagem do Grafo");
+            System.out.println("1.9 - Gerar Imagem do Grafo");
             System.out.println("1.10 - Sair");
 
             try {
@@ -152,14 +157,41 @@ public class Application {
                     //Manter e desmcomentar quando implementarmos nas proximas entregas
                     // case "1.8":
                     //     break;
-                    // case "1.9":
-                    //     break;
+                    case "1.9":
+                        imageMenu();
+                        break;
                     case "1.10":
                         return;
                     default:
                         invalidOption();
                 }
             } catch (IllegalArgumentException exception) {
+                System.out.println("Erro: " + exception.getMessage());
+            }
+        }
+    }
+
+    private void imageMenu()  {
+        while (this.running) {
+            System.out.println("\n=== GERAR IMAGEM DO GRAFO ===");
+            System.out.println("1.9.1 - Gerar Imagem do Grafo (Normal)");
+            System.out.println("1.9.2 - Gerar Imagens de CFCs e Grafo Reduzido (Malgrange)");
+            System.out.println("0 - Voltar ao menu do grafo");
+
+            try {
+                switch (read("Escolha uma opção: ")) {
+                    case "1.9.1":
+                        generateNormalGraphImage();
+                        break;
+                    case "1.9.2":
+                        generateMalgrangeGraphImages();
+                        break;
+                    case "0":
+                        return;
+                    default:
+                        invalidOption();
+                }
+            } catch (IllegalArgumentException | IOException exception) {
                 System.out.println("Erro: " + exception.getMessage());
             }
         }
@@ -371,6 +403,62 @@ public class Application {
         }
 
         System.out.println(this.graph.kruskal());
+    }
+
+    private void generateNormalGraphImage() throws IOException {
+        if (this.graph.getNumNodes() == 0) {
+            System.out.println("O grafo não possui vértices.");
+            return;
+        }
+
+        // Sugerir o caminho padrão dentro da pasta que com o nome Generaed-Graph-Images
+        String path = read("Informe o path(caminho) de saída (ex: Generated-Graph-Images/grafo_normal.png): ");
+        if (!this.running) {
+            return;
+        }
+
+        if (path.isEmpty()) {
+            path = "Generated-Graph-Images/grafo_normal.png";
+        } else if (!path.endsWith(".png")) {
+            path += ".png";
+        }
+
+        this.graph.saveToPng(path);
+        System.out.println("Imagem do grafo gerada com sucesso: " + path);
+    }
+
+    private void generateMalgrangeGraphImages() throws IOException {
+        if (this.graph.getNumNodes() == 0) {
+            System.out.println("O grafo não possui vértices.");
+            return;
+        }
+
+        if (!this.graph.isDirected()) {
+            System.out.println("Aviso: A análise de Componentes Fortemente Conexas (Malgrange) aplica-se a grafos orientados.");
+        }
+
+        List<List<Node<String>>> cfcs = this.graph.getStronglyConnectedComponents();
+
+        List<String> paletaCores = Arrays.asList("lightblue", "lightgreen", "lightpink", "lightyellow", "orange", "plum");
+        Map<String, String> coresPorVertice = new HashMap<>();
+
+        for (int i = 0; i < cfcs.size(); i++) {
+            String cor = paletaCores.get(i % paletaCores.size());
+            for (Node<String> node : cfcs.get(i)) {
+                coresPorVertice.put(node.getId(), cor);
+            }
+        }
+
+        // Criei a pasta Generated-Graph-Images >> Salvar as duas imagens do grafo , talvez criar mais pastas ?
+        String caminhoDoGrafoOriginal = "Generated-Graph-Images/grafo_original_cfcs.png";
+        String caminhoDoGrafoReduzido = "Generated-Graph-Images/grafo_reduzido.png";
+
+        this.graph.saveColoredToPng(coresPorVertice, caminhoDoGrafoOriginal);
+        this.graph.saveReducedGraphToPng(cfcs, caminhoDoGrafoReduzido);
+
+        System.out.println("Imagens de Malgrange geradas com sucesso:");
+        System.out.println(" - Grafo original com CFCs coloridas: " + caminhoDoGrafoOriginal);
+        System.out.println(" - Grafo reduzido Gr(S, W): " + caminhoDoGrafoReduzido);
     }
 
     private void printInformation() {
