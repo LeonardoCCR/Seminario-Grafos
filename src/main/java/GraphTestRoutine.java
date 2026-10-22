@@ -29,6 +29,13 @@ public class GraphTestRoutine {
         testKruskalDisconnectedGraph();
         testKruskalDirectedGraph();
         testKruskalSingleNodeGraph();
+        testMalgrangeSeveralComponents();
+        testMalgrangeSingleComponent();
+        testMalgrangeWithoutCycles();
+        testMalgrangeSourceAndSink();
+        testMalgrangeLoopAndParallelArc();
+        testMalgrangeReducedGraphIsAcyclic();
+        testMalgrangeUndirectedGraph();
 
         System.out.println("\nTodos os testes passaram.");
     }
@@ -569,6 +576,164 @@ public class GraphTestRoutine {
         check(report.contains("Nenhuma aresta (vértice isolado)."),
                 "A AGM de um único vértice deve ser vazia.");
         showPrim("TESTE 21 - Kruskal com um vértice", "zero arestas; peso 0.0.", report);
+    }
+
+    private static void checkComponents(String report, int expected) {
+        check(report.contains("Total de componentes fortemente conexas: " + expected + "\n"),
+                "Era esperado " + expected + " componente(s). Relatório recebido: " + report);
+    }
+
+    private static void showMalgrange(String title, String expected, String report) {
+        System.out.println("\n==================================================");
+        System.out.println(title);
+        System.out.println("Esperado: " + expected);
+        System.out.println(report);
+    }
+
+    private static void testMalgrangeSeveralComponents() {
+        AdjMatrixGraph<Double> graph = createGraph(true, false, "A", "B", "C", "D", "E");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "C");
+        graph.addEdge("C", "A");
+        graph.addEdge("C", "D");
+        graph.addEdge("D", "E");
+
+        String report = graph.malgrange();
+        checkComponents(report, 3);
+        check(report.contains("S1 = {A, B, C}"), "O ciclo A-B-C deve formar uma única componente.");
+        check(report.contains("S2 = {D}") && report.contains("S3 = {E}"),
+                "D e E não estão em ciclo, então ficam sozinhos.");
+
+        // O registro precisa mostrar os dois fechos e o que ainda falta processar.
+        check(report.contains("Iteração 1 | Vértice escolhido: A"), "A primeira iteração deve partir de A.");
+        check(report.contains("Fecho direto (sucessores)  : [A, B, C, D, E]"),
+                "O fecho direto de A deve alcançar todos os vértices.");
+        check(report.contains("Fecho inverso (antecessores): [A, B, C]"),
+                "Só o ciclo alcança A de volta.");
+        check(report.contains("Restam para processar: [D, E]"),
+                "Depois da primeira iteração devem sobrar D e E.");
+
+        check(graph.getOrder() == 5 && graph.getNumEdges() == 5,
+                "Malgrange não deve alterar o grafo original.");
+
+        showMalgrange("TESTE 22 - Malgrange com componentes de tamanhos diferentes",
+                "três componentes: {A, B, C}, {D} e {E}; grafo reduzido S1 -> S2 -> S3.", report);
+    }
+
+    private static void testMalgrangeSingleComponent() {
+        AdjMatrixGraph<Double> graph = createGraph(true, false, "A", "B", "C");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "C");
+        graph.addEdge("C", "A");
+
+        String report = graph.malgrange();
+        checkComponents(report, 1);
+        check(report.contains("S1 = {A, B, C}"), "O grafo inteiro deve formar uma só componente.");
+        check(report.contains("Nenhum arco entre componentes."),
+                "Com uma única componente o grafo reduzido não tem arcos.");
+
+        showMalgrange("TESTE 23 - Malgrange em dígrafo totalmente fortemente conexo",
+                "uma única componente com os três vértices; grafo reduzido sem arcos.", report);
+    }
+
+    private static void testMalgrangeWithoutCycles() {
+        AdjMatrixGraph<Double> graph = createGraph(true, false, "A", "B", "C");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "C");
+
+        // Sem nenhum ciclo cada vértice é a sua própria componente.
+        String report = graph.malgrange();
+        checkComponents(report, 3);
+        check(report.contains("S1 = {A}") && report.contains("S2 = {B}") && report.contains("S3 = {C}"),
+                "Cada vértice deve ficar isolado na própria componente.");
+
+        showMalgrange("TESTE 24 - Malgrange em dígrafo sem ciclos",
+                "três componentes unitárias; grafo reduzido igual ao original.", report);
+    }
+
+    private static void testMalgrangeSourceAndSink() {
+        AdjMatrixGraph<Double> graph = createGraph(true, false, "A", "B", "C", "D");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "C");
+        graph.addEdge("C", "B");
+        graph.addEdge("C", "D");
+
+        String report = graph.malgrange();
+        checkComponents(report, 3);
+        check(report.contains("S1 = {A}"), "A fonte deve ficar em uma componente própria.");
+        check(report.contains("S2 = {B, C}"), "O ciclo B-C deve formar uma componente.");
+        check(report.contains("S3 = {D}"), "O sumidouro deve ficar em uma componente própria.");
+        check(getIds(graph.getSources()).equals(Arrays.asList("A")), "A deve ser a única fonte.");
+        check(getIds(graph.getSinks()).equals(Arrays.asList("D")), "D deve ser o único sumidouro.");
+
+        showMalgrange("TESTE 25 - Malgrange com fonte e sumidouro",
+                "fonte A e sumidouro D em componentes próprias; ciclo B-C junto.", report);
+    }
+
+    private static void testMalgrangeLoopAndParallelArc() {
+        AdjMatrixGraph<Double> graph = createGraph(true, false, "A", "B");
+        graph.addEdge("A", "A");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "A");
+
+        // A matriz guarda um arco por par, então o arco paralelo é recusado.
+        try {
+            graph.addEdge("A", "B");
+            check(false, "A matriz de adjacências não deveria aceitar um segundo arco de A para B.");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().contains("não permite multiarestas"),
+                    "A mensagem deve explicar que a representação não permite multiarestas.");
+        }
+
+        String report = graph.malgrange();
+        checkComponents(report, 1);
+        check(report.contains("S1 = {A, B}"), "O laço não pode atrapalhar a identificação da componente.");
+
+        showMalgrange("TESTE 26 - Malgrange com laço e arco paralelo recusado",
+                "laço em A não interfere; componente única {A, B}.", report);
+    }
+
+    private static void testMalgrangeReducedGraphIsAcyclic() {
+        AdjMatrixGraph<Double> graph = createGraph(true, false, "A", "B", "C", "D", "E", "F");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "A");
+        graph.addEdge("B", "C");
+        graph.addEdge("C", "D");
+        graph.addEdge("D", "C");
+        graph.addEdge("D", "E");
+        graph.addEdge("E", "F");
+
+        String report = graph.malgrange();
+        checkComponents(report, 4);
+        check(report.contains("S1 = {A, B}") && report.contains("S2 = {C, D}"),
+                "Os dois ciclos devem virar componentes.");
+
+        // Num grafo reduzido acíclico os arcos sempre andam para frente, nunca voltam.
+        check(report.contains("S1 -> S2") && report.contains("S2 -> S3") && report.contains("S3 -> S4"),
+                "Os arcos devem seguir sempre para a componente seguinte.");
+        check(!report.contains("S2 -> S1") && !report.contains("S3 -> S2") && !report.contains("S4 -> S3"),
+                "Não pode existir arco de volta, senão o grafo reduzido teria ciclo.");
+
+        showMalgrange("TESTE 27 - Malgrange com grafo reduzido acíclico",
+                "quatro componentes encadeadas S1 -> S2 -> S3 -> S4, sem arco de volta.", report);
+    }
+
+    private static void testMalgrangeUndirectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, false, "A", "B");
+        graph.addEdge("A", "B");
+
+        try {
+            graph.malgrange();
+            check(false, "Malgrange não deveria aceitar um grafo não orientado.");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().contains("não se aplica a grafos não orientados"),
+                    "A mensagem deve informar que a funcionalidade não se aplica.");
+        }
+
+        System.out.println("\n==================================================");
+        System.out.println("TESTE 28 - Malgrange em grafo não orientado");
+        System.out.println("Esperado: o sistema informa que a funcionalidade não se aplica.");
+        System.out.println("O algoritmo de Malgrange não se aplica a grafos não orientados.");
     }
 
 }
