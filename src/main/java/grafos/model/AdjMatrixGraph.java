@@ -931,6 +931,186 @@ public class AdjMatrixGraph<T> {
         return parent[vertex];
     }
 
+    //Malgrange: pego um vértice, calculo o fecho direto e o inverso dele e cruzo os dois.
+    //Quem está nos dois volta para o vértice e é alcançado por ele, então está no mesmo ciclo.
+    //O próprio vértice entra sempre, porque os fechos daqui só incluem o início quando existe ciclo.
+    //Deixei este método devolvendo as componentes para a parte da imagem poder pintar cada uma.
+    public List<List<Node<T>>> getStronglyConnectedComponents() {
+        if (!this.directed) {
+            throw new IllegalArgumentException("O algoritmo de Malgrange não se aplica a grafos não orientados.");
+        }
+
+        boolean[] classified = new boolean[this.numNodes];
+        List<List<Node<T>>> components = new ArrayList<>();
+
+        for (int start = 0; start < this.numNodes; start++) {
+            if (classified[start]) {
+                continue;
+            }
+
+            List<Node<T>> component = new ArrayList<>();
+
+            for (int i : intersectClosures(start, classified)) {
+                classified[i] = true;
+                component.add(this.nodes.get(i));
+            }
+
+            components.add(component);
+        }
+
+        return components;
+    }
+
+    private List<Integer> intersectClosures(int start, boolean[] classified) {
+        String startId = this.nodes.get(start).getId();
+        boolean[] inDirect = markClosure(getDirectTransitiveClosure(startId));
+        boolean[] inInverse = markClosure(getInverseTransitiveClosure(startId));
+
+        List<Integer> component = new ArrayList<>();
+
+        for (int i = 0; i < this.numNodes; i++) {
+            if (i == start || (inDirect[i] && inInverse[i] && !classified[i])) {
+                component.add(i);
+            }
+        }
+
+        return component;
+    }
+
+    private boolean[] markClosure(List<Node<T>> closure) {
+        boolean[] marked = new boolean[this.numNodes];
+
+        for (Node<T> node : closure) {
+            marked[getNodeIndex(node.getId())] = true;
+        }
+
+        return marked;
+    }
+
+    public String malgrange() {
+        if (!this.directed) {
+            throw new IllegalArgumentException("O algoritmo de Malgrange não se aplica a grafos não orientados.");
+        }
+
+        StringBuilder result = new StringBuilder("\n=== MALGRANGE ===\n");
+        result.append("Componentes fortemente conexas pela interseção do fecho direto com o inverso.\n");
+
+        if (this.numNodes == 0) {
+            result.append("\nO grafo não possui vértices.\n");
+            return result.toString();
+        }
+
+        boolean[] classified = new boolean[this.numNodes];
+        List<List<Integer>> components = new ArrayList<>();
+
+        result.append("\n=== REGISTRO DA EXECUÇÃO ===\n");
+        int iteration = 1;
+
+        for (int start = 0; start < this.numNodes; start++) {
+            if (classified[start]) {
+                continue;
+            }
+
+            String startId = this.nodes.get(start).getId();
+            List<Integer> component = intersectClosures(start, classified);
+
+            result.append("\nIteração ").append(iteration).append(" | Vértice escolhido: ").append(startId)
+                    .append("\nFecho direto (sucessores)  : ").append(formatNodes(getDirectTransitiveClosure(startId)))
+                    .append("\nFecho inverso (antecessores): ").append(formatNodes(getInverseTransitiveClosure(startId)))
+                    .append("\nComponente (interseção + o próprio vértice): ").append(formatIndexes(component));
+
+            for (int i : component) {
+                classified[i] = true;
+            }
+
+            components.add(component);
+            result.append("\nRestam para processar: ").append(formatRemaining(classified)).append("\n");
+            ++iteration;
+        }
+
+        result.append("\n=== RESULTADO ===\n");
+        result.append("Total de componentes fortemente conexas: ").append(components.size()).append("\n");
+
+        for (int i = 0; i < components.size(); i++) {
+            result.append("S").append(i + 1).append(" = ").append(formatIndexes(components.get(i))).append("\n");
+        }
+
+        result.append(buildReducedGraph(components));
+        return result.toString();
+    }
+
+    //Grafo reduzido: cada componente vira um super-vértice e só guardo os arcos que saem
+    //de uma componente para outra. Os arcos de dentro da componente somem.
+    private String buildReducedGraph(List<List<Integer>> components) {
+        int[] componentOf = new int[this.numNodes];
+
+        for (int c = 0; c < components.size(); c++) {
+            for (int i : components.get(c)) {
+                componentOf[i] = c;
+            }
+        }
+
+        StringBuilder arcs = new StringBuilder();
+        boolean[][] used = new boolean[components.size()][components.size()];
+        int numArcs = 0;
+
+        for (int i = 0; i < this.numNodes; i++) {
+            for (int j = 0; j < this.numNodes; j++) {
+                if (this.adjacencyMatrix[i][j] == WITHOUT_EDGE) {
+                    continue;
+                }
+
+                int from = componentOf[i];
+                int to = componentOf[j];
+
+                if (from != to && !used[from][to]) {
+                    used[from][to] = true;
+                    ++numArcs;
+                    arcs.append("S").append(from + 1).append(" -> S").append(to + 1)
+                            .append("   (").append(formatIndexes(components.get(from)))
+                            .append(" -> ").append(formatIndexes(components.get(to))).append(")\n");
+                }
+            }
+        }
+
+        StringBuilder result = new StringBuilder("\n=== GRAFO REDUZIDO Gr(S, W) ===\n");
+        result.append("Super-vértices: ").append(components.size())
+                .append(" | Arcos: ").append(numArcs).append("\n");
+
+        if (numArcs == 0) {
+            result.append("Nenhum arco entre componentes.\n");
+        } else {
+            result.append(arcs);
+        }
+
+        return result.toString();
+    }
+
+    private String formatIndexes(List<Integer> indexes) {
+        StringBuilder result = new StringBuilder("{");
+
+        for (int i = 0; i < indexes.size(); i++) {
+            if (i > 0) {
+                result.append(", ");
+            }
+            result.append(this.nodes.get(indexes.get(i)).getId());
+        }
+
+        return result.append("}").toString();
+    }
+
+    private String formatRemaining(boolean[] classified) {
+        List<Node<T>> remaining = new ArrayList<>();
+
+        for (int i = 0; i < this.numNodes; i++) {
+            if (!classified[i]) {
+                remaining.add(this.nodes.get(i));
+            }
+        }
+
+        return remaining.isEmpty() ? "[] (todos já classificados)" : formatNodes(remaining);
+    }
+
     public String getDegreesInformation() {
         StringBuilder result = new StringBuilder();
         if (this.numNodes == 0) {
