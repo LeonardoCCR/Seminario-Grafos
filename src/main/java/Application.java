@@ -324,6 +324,8 @@ public class Application {
             System.out.println("1.7.2 - Kruskal (árvore geradora mínima)");
             System.out.println("1.7.3 - Prim (árvore geradora mínima)");
             System.out.println("1.7.4 - Malgrange (componentes fortemente conexas)");
+            System.out.println("1.7.5 - Busca em largura (BFS)");
+            System.out.println("1.7.6 - Busca em profundidade (DFS)");
             System.out.println("0 - Voltar ao menu do grafo");
 
             try {
@@ -339,6 +341,12 @@ public class Application {
                         break;
                     case "1.7.4":
                         printMalgrange();
+                        break;
+                    case "1.7.5":
+                        printSearch(false);
+                        break;
+                    case "1.7.6":
+                        printSearch(true);
                         break;
                     case "0":
                         return;
@@ -394,6 +402,28 @@ public class Application {
         }
 
         System.out.println(this.graph.malgrange());
+    }
+
+    //As duas buscas pedem a mesma coisa (o vértice inicial), então usei um método só para as duas.
+    private void printSearch(boolean depthFirst) {
+        if (this.graph.getNumNodes() == 0) {
+            System.out.println("O grafo não possui vértices.");
+            return;
+        }
+
+        System.out.println("\nVértices disponíveis:");
+
+        for (Node<String> node : this.graph.getNodes()) {
+            System.out.println(node);
+        }
+
+        String id = read("ID do vértice inicial: ");
+
+        if (!this.running) {
+            return;
+        }
+
+        System.out.println(depthFirst ? this.graph.dfs(id) : this.graph.bfs(id));
     }
 
     private void printKruskal() {
