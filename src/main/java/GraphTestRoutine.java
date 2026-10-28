@@ -39,6 +39,11 @@ public class GraphTestRoutine {
         testMalgrangeReducedGraphIsAcyclic();
         testMalgrangeUndirectedGraph();
         testMalgrangeVisualGeneration();
+        testSearchUndirectedGraph();
+        testSearchDisconnectedGraph();
+        testSearchDirectedGraph();
+        testSearchCycleAndLoop();
+        testSearchSingleNode();
 
         System.out.println("\nTodos os testes passaram.");
     }
@@ -769,6 +774,115 @@ public class GraphTestRoutine {
         } catch (Exception e) {
             throw new AssertionError("Falha ao gerar as imagens da Parte B: " + e.getMessage());
         }
+    }
+
+    private static void showSearch(String title, String expected, String report) {
+        System.out.println("\n==================================================");
+        System.out.println(title);
+        System.out.println("Esperado: " + expected);
+        System.out.println(report);
+    }
+
+    private static void testSearchUndirectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, false, "A", "B", "C", "D", "E");
+        graph.addEdge("A", "B");
+        graph.addEdge("A", "C");
+        graph.addEdge("B", "D");
+        graph.addEdge("C", "E");
+
+        // A BFS visita por camadas, a DFS desce por B até D antes de voltar para C.
+        String bfs = graph.bfs("A");
+        String dfs = graph.dfs("A");
+        check(bfs.contains("Ordem de visita: 1º A, 2º B, 3º C, 4º D, 5º E"),
+                "A BFS deve visitar os vizinhos de A antes de D e E.");
+        check(dfs.contains("Ordem de visita: 1º A, 2º B, 3º D, 4º C, 5º E"),
+                "A DFS deve descer até D antes de voltar para C.");
+        check(bfs.contains("Arestas da árvore de busca: A -- B, A -- C, B -- D, C -- E"),
+                "A árvore da BFS deve sair de A para B e C.");
+        check(bfs.contains("nenhum, todos foram alcançados"), "Num grafo conexo todos devem ser alcançados.");
+
+        // Aresta não orientada pode ser percorrida nos dois sentidos.
+        check(graph.bfs("E").contains("Ordem de visita: 1º E, 2º C, 3º A, 4º B, 5º D"),
+                "Partindo de E a busca deve voltar pelas arestas até alcançar todos.");
+
+        check(graph.getOrder() == 5 && graph.getNumEdges() == 4, "A busca não deve alterar o grafo.");
+
+        showSearch("TESTE 30 - BFS e DFS em grafo não orientado",
+                "BFS: A, B, C, D, E; DFS: A, B, D, C, E.", bfs + dfs);
+    }
+
+    private static void testSearchDisconnectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(false, false, "A", "B", "C", "D");
+        graph.addEdge("A", "B");
+        graph.addEdge("C", "D");
+
+        String bfs = graph.bfs("A");
+        String dfs = graph.dfs("A");
+        check(bfs.contains("Ordem de visita: 1º A, 2º B\n"), "A BFS só deve alcançar a componente de A.");
+        check(bfs.contains("Vértices não alcançados a partir de A: [C, D]"),
+                "A BFS deve informar que C e D não foram alcançados.");
+        check(dfs.contains("Vértices não alcançados a partir de A: [C, D]"),
+                "A DFS deve informar que C e D não foram alcançados.");
+
+        showSearch("TESTE 31 - Busca em grafo desconexo",
+                "só A e B são visitados; C e D aparecem como não alcançados.", bfs);
+    }
+
+    private static void testSearchDirectedGraph() {
+        AdjMatrixGraph<Double> graph = createGraph(true, false, "A", "B", "C", "D");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "C");
+        graph.addEdge("A", "D");
+
+        String fromA = graph.bfs("A");
+        check(fromA.contains("Ordem de visita: 1º A, 2º B, 3º D, 4º C"), "A BFS de A deve alcançar todos.");
+        check(fromA.contains("Arestas da árvore de busca: A -> B, A -> D, B -> C"),
+                "No dígrafo a árvore deve ser mostrada com setas.");
+
+        // Os arcos só podem ser seguidos no sentido certo, então de C não se chega a ninguém.
+        String fromC = graph.dfs("C");
+        check(fromC.contains("Ordem de visita: 1º C\n"), "C não tem arcos saindo, a busca para nele.");
+        check(fromC.contains("Vértices não alcançados a partir de C: [A, B, D]"),
+                "A busca não pode voltar pelos arcos.");
+
+        showSearch("TESTE 32 - Busca em dígrafo respeitando a orientação",
+                "de A alcança todos; de C não alcança ninguém, porque não pode voltar pelos arcos.", fromA + fromC);
+    }
+
+    private static void testSearchCycleAndLoop() {
+        AdjMatrixGraph<Double> graph = createGraph(true, false, "A", "B", "C");
+        graph.addEdge("A", "A");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "C");
+        graph.addEdge("C", "A");
+
+        // Com ciclo e laço a busca não pode visitar o mesmo vértice duas vezes.
+        String dfs = graph.dfs("B");
+        check(dfs.contains("Ordem de visita: 1º B, 2º C, 3º A\n"), "Cada vértice deve ser visitado uma vez só.");
+        check(graph.bfs("A").contains("Ordem de visita: 1º A, 2º B, 3º C\n"),
+                "O laço em A não pode fazer A ser visitado de novo.");
+
+        showSearch("TESTE 33 - Busca em dígrafo com ciclo e laço",
+                "B, C, A, sem repetir vértice e sem entrar em loop.", dfs);
+    }
+
+    private static void testSearchSingleNode() {
+        AdjMatrixGraph<Double> graph = createGraph(false, false, "A");
+
+        String bfs = graph.bfs("A");
+        check(bfs.contains("Ordem de visita: 1º A\n"), "Só existe o próprio vértice para visitar.");
+        check(bfs.contains("Arestas da árvore de busca: nenhuma"), "Sem arestas a árvore de busca fica vazia.");
+
+        try {
+            graph.dfs("Z");
+            check(false, "A busca não deveria aceitar um vértice que não existe.");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().contains("Vértice não encontrado"),
+                    "A mensagem deve dizer que o vértice não existe.");
+        }
+
+        showSearch("TESTE 34 - Busca em grafo de um vértice e vértice inexistente",
+                "só A é visitado; vértice inexistente é recusado com mensagem.", bfs);
     }
 
 }
