@@ -1111,6 +1111,89 @@ public class AdjMatrixGraph<T> {
         return remaining.isEmpty() ? "[] (todos já classificados)" : formatNodes(remaining);
     }
 
+    //BFS: parto do vértice inicial e uso uma fila, então visito primeiro todos os vizinhos
+    //dele, depois os vizinhos dos vizinhos, e assim por diante.
+    //Guardo quem descobriu cada vértice (parent) para conseguir montar a árvore de busca.
+    public String bfs(String startId) {
+        int start = getNodeIndex(startId);
+        List<Integer> order = new ArrayList<>();
+        int[] parent = breadthFirstSearch(start, order);
+        return formatSearchResult("BUSCA EM LARGURA (BFS)", startId, order, parent);
+    }
+
+    private int[] breadthFirstSearch(int start, List<Integer> order) {
+        int[] parent = new int[this.numNodes];
+        boolean[] visited = new boolean[this.numNodes];
+        Arrays.fill(parent, -1);
+
+        Queue<Integer> queue = new ArrayDeque<>();
+        visited[start] = true;
+        queue.add(start);
+
+        while (!queue.isEmpty()) {
+            int current = queue.remove();
+            order.add(current);
+
+            for (int next = 0; next < this.numNodes; next++) {
+                // só sigo o arco no sentido certo; no não orientado a matriz já é espelhada
+                if (!visited[next] && this.adjacencyMatrix[current][next] != WITHOUT_EDGE) {
+                    visited[next] = true;
+                    parent[next] = current;
+                    queue.add(next);
+                }
+            }
+        }
+
+        return parent;
+    }
+
+    private String formatSearchResult(String title, String startId, List<Integer> order, int[] parent) {
+        StringBuilder result = new StringBuilder("\n=== ").append(title).append(" ===\n");
+        result.append("Vértice inicial: ").append(startId)
+                .append("\nDesempate: ordem de inserção dos vértices.\n");
+
+        result.append("\n=== RESULTADO ===\nOrdem de visita: ");
+
+        for (int i = 0; i < order.size(); i++) {
+            if (i > 0) {
+                result.append(", ");
+            }
+            result.append(i + 1).append("º ").append(this.nodes.get(order.get(i)).getId());
+        }
+
+        String arrow = this.directed ? " -> " : " -- ";
+        StringBuilder treeEdges = new StringBuilder();
+
+        for (int v : order) {
+            if (parent[v] != -1) {
+                if (treeEdges.length() > 0) {
+                    treeEdges.append(", ");
+                }
+                treeEdges.append(this.nodes.get(parent[v]).getId()).append(arrow).append(this.nodes.get(v).getId());
+            }
+        }
+
+        result.append("\nArestas da árvore de busca: ")
+                .append(treeEdges.length() == 0 ? "nenhuma" : treeEdges.toString());
+
+        boolean[] reached = new boolean[this.numNodes];
+        for (int v : order) {
+            reached[v] = true;
+        }
+
+        List<Node<T>> unreached = new ArrayList<>();
+        for (int i = 0; i < this.numNodes; i++) {
+            if (!reached[i]) {
+                unreached.add(this.nodes.get(i));
+            }
+        }
+
+        result.append("\nVértices não alcançados a partir de ").append(startId).append(": ")
+                .append(unreached.isEmpty() ? "nenhum, todos foram alcançados" : formatNodes(unreached))
+                .append("\n");
+        return result.toString();
+    }
+
     public String getDegreesInformation() {
         StringBuilder result = new StringBuilder();
         if (this.numNodes == 0) {
