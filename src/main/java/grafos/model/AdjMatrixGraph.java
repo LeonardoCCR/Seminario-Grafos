@@ -1147,6 +1147,52 @@ public class AdjMatrixGraph<T> {
         return parent;
     }
 
+    //DFS: em vez de fila, vou o mais fundo possível por um caminho e só volto quando acabam os vizinhos.
+    //Fiz recursivo porque fica mais fácil de ler: visito o vértice e já desço no primeiro vizinho livre.
+    public String dfs(String startId) {
+        int start = getNodeIndex(startId);
+        List<Integer> order = new ArrayList<>();
+        int[] parent = depthFirstSearch(start, order);
+        return formatSearchResult("BUSCA EM PROFUNDIDADE (DFS)", startId, order, parent);
+    }
+
+    private int[] depthFirstSearch(int start, List<Integer> order) {
+        int[] parent = new int[this.numNodes];
+        boolean[] visited = new boolean[this.numNodes];
+        Arrays.fill(parent, -1);
+        visitDepthFirst(start, visited, parent, order);
+        return parent;
+    }
+
+    private void visitDepthFirst(int current, boolean[] visited, int[] parent, List<Integer> order) {
+        visited[current] = true;
+        order.add(current);
+
+        for (int next = 0; next < this.numNodes; next++) {
+            if (!visited[next] && this.adjacencyMatrix[current][next] != WITHOUT_EDGE) {
+                parent[next] = current;
+                visitDepthFirst(next, visited, parent, order);
+            }
+        }
+    }
+
+    //Deixei público para a parte da imagem conseguir destacar as arestas que a busca percorreu.
+    //Cada item é {origem, destino}, na ordem em que a busca descobriu o vértice.
+    public List<String[]> getSearchTreeEdges(String startId, boolean depthFirst) {
+        int start = getNodeIndex(startId);
+        List<Integer> order = new ArrayList<>();
+        int[] parent = depthFirst ? depthFirstSearch(start, order) : breadthFirstSearch(start, order);
+        List<String[]> edges = new ArrayList<>();
+
+        for (int v : order) {
+            if (parent[v] != -1) {
+                edges.add(new String[]{this.nodes.get(parent[v]).getId(), this.nodes.get(v).getId()});
+            }
+        }
+
+        return edges;
+    }
+
     private String formatSearchResult(String title, String startId, List<Integer> order, int[] parent) {
         StringBuilder result = new StringBuilder("\n=== ").append(title).append(" ===\n");
         result.append("Vértice inicial: ").append(startId)
