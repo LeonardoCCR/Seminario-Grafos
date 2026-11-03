@@ -33,11 +33,15 @@ public class Application {
         while (this.running) {
             System.out.println("\n=== GRAFOS ===");
             System.out.println("1 - Criar Grafo");
+            System.out.println("2 - Abrir Grafo (.dot)");
             System.out.println("0 - Sair");
 
             switch (read("Escolha uma opção: ")) {
                 case "1":
                     createGraph();
+                    break;
+                case "2":
+                    openGraph();
                     break;
                 case "0":
                     this.running = false;
@@ -127,7 +131,7 @@ public class Application {
             System.out.println("1.5 - Imprimir Grafo");
             System.out.println("1.6 - Informações do Grafo");
             System.out.println("1.7 - Algoritmos");
-            // System.out.println("1.8 - Salvar Grafo em Disco");
+            System.out.println("1.8 - Salvar Grafo em Disco (.dot)");
             System.out.println("1.9 - Gerar Imagem do Grafo");
             System.out.println("1.10 - Sair");
 
@@ -155,8 +159,9 @@ public class Application {
                         algorithmsMenu();
                         break;
                     //Manter e desmcomentar quando implementarmos nas proximas entregas
-                    // case "1.8":
-                    //     break;
+                    case "1.8":
+                        saveGraph();
+                        break;
                     case "1.9":
                         imageMenu();
                         break;
@@ -168,6 +173,35 @@ public class Application {
             } catch (IllegalArgumentException exception) {
                 System.out.println("Erro: " + exception.getMessage());
             }
+        }
+    }
+
+    private void saveGraph() {
+        String path = read("Caminho do arquivo .dot para salvar: ");
+        if (!this.running) return;
+        if (!path.toLowerCase().endsWith(".dot")) path += ".dot";
+        try {
+            this.graph.saveToDot(path);
+            System.out.println("Grafo salvo em: " + path);
+        } catch (IOException | IllegalArgumentException exception) {
+            System.out.println("Erro ao salvar grafo: " + exception.getMessage());
+        }
+    }
+
+    private void openGraph() {
+        String path = read("Caminho do arquivo .dot para abrir: ");
+        if (!this.running) return;
+        if (this.graph != null) {
+            String answer = read("Substituir o grafo atual e perder seus dados? (s/n): ");
+            if (!this.running || !answer.equalsIgnoreCase("s")) return;
+        }
+        try {
+            AdjMatrixGraph<String> loaded = AdjMatrixGraph.loadFromDot(path);
+            this.graph = loaded;
+            System.out.println("Grafo carregado com sucesso: " + path);
+            graphMenu();
+        } catch (IOException | IllegalArgumentException exception) {
+            System.out.println("Erro ao abrir grafo: " + exception.getMessage());
         }
     }
 
