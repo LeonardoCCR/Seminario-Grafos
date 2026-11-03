@@ -1,14 +1,8 @@
 package grafos.model;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.ArrayDeque;
-import java.util.Queue;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.*;
+import java.nio.file.*;
 
 public class AdjMatrixGraph<T> {
 
@@ -886,7 +880,7 @@ public class AdjMatrixGraph<T> {
             totalWeight += this.adjacencyMatrix[edge[0]][edge[1]];
         }
 
-        Map<Integer, List<Integer>> components = new java.util.LinkedHashMap<>();
+        Map<Integer, List<Integer>> components = new LinkedHashMap<>();
         for (int i = 0; i < this.numNodes; i++) {
             int root = findKruskalRoot(parent, i);
             components.computeIfAbsent(root, key -> new ArrayList<>()).add(i);
@@ -1340,14 +1334,18 @@ public class AdjMatrixGraph<T> {
         //mais fácil com string buikder
 
         dot.append(this.directed ? "digraph G {\n" : "graph G {\n");
+        dot.append("    graph [weighted=").append(this.weighted).append("];\n");
 
         // Adicionar os nós, vértices isolados tbm
         for (Node<T> node : this.nodes) {
             String id = node.getId();
-            dot.append("    ").append(id);
+            dot.append("    ").append(dotQuote(id));
 
             if (nodeColors != null && nodeColors.containsKey(id)) {
-                dot.append(" [style=filled, fillcolor=").append(nodeColors.get(id)).append("]");
+                dot.append(" [style=filled, fillcolor=").append(nodeColors.get(id)).append(", value=\"").append(dotEscape(String.valueOf(node.getValue()))).append("\"]");
+            }
+            if (nodeColors == null || !nodeColors.containsKey(id)) {
+                dot.append(" [value=\"").append(dotEscape(String.valueOf(node.getValue()))).append("\"]");
             }
             dot.append(";\n");
         }
@@ -1373,7 +1371,7 @@ public class AdjMatrixGraph<T> {
                 String destId = this.nodes.get(j).getId();
                 double weight = this.adjacencyMatrix[i][j];
 
-                dot.append("    ").append(srcId).append(edgeOperator).append(destId);
+                dot.append("    ").append(dotQuote(srcId)).append(edgeOperator).append(dotQuote(destId));
 
                 if (this.weighted) {
                     dot.append(" [label=\"").append(weight).append("\"]");
@@ -1389,6 +1387,121 @@ public class AdjMatrixGraph<T> {
 
     public String toDotString() {
         return toDotString(null);
+    }
+
+    //limpa os possíveis caracteres que podem dar problemas nos ids dos grafos
+    private static String dotEscape(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+    }
+
+
+    private static String dotQuote(String value) {
+        return "\"" + dotEscape(value) + "\"";
+    }
+
+    //usando nio
+    public void saveToDot(String filePath) throws java.io.IOException {
+        java.nio.file.Path path = java.nio.file.Path.of(filePath);
+        java.nio.file.Files.writeString(path, toDotString(), java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    // Lê o subconjunto Dot
+
+    public static AdjMatrixGraph<String> loadFromDot(String filePath) throws java.io.IOException {
+        String content = Files.readString(java.nio.file.Path.of(filePath), java.nio.charset.StandardCharsets.UTF_8);
+        Matcher header = Pattern.compile("(?s)^\\s*(digraph|graph)\\s+(?:[A-Za-z_][A-Za-z_0-9]*|\\\"(?:\\\\.|[^\\\"\\\\])*\\\")?\\s*\\{").matcher(content);
+
+        if (!header.find()) throw new IllegalArgumentException("Cabeçalho DOT inválido.");
+        boolean directed = header.group(1).equals("digraph");
+
+        int end = content.lastIndexOf('}');
+        if (end < header.end() || !content.substring(end + 1).trim().isEmpty()) throw new IllegalArgumentException("Estrutura DOT inválida.");
+        String body = content.substring(header.end(), end);
+        Pattern token = Pattern.compile("\\s*(\\\"(?:\\\\.|[^\\\"\\\\])*\\\"|[A-Za-z_][A-Za-z_0-9]*|[0-9]+|->|--|\\[|\\]|=|,|;)");
+        ArrayList<String> tokens = new ArrayList<>();
+        int position = 0;
+        while (position < body.length()) {
+            Matcher matcher = token.matcher(body);
+            matcher.region(position, body.length());
+            if (!matcher.lookingAt()) {
+                if (body.substring(position).trim().isEmpty()) break;
+                throw new IllegalArgumentException("Conteúdo DOT inválido na posição " + position + ".");
+            }
+            tokens.add(matcher.group(1));
+            position = matcher.end();
+        }
+        LinkedHashMap<String, String> values = new LinkedHashMap<>();
+        List<String[]> edges = new ArrayList<>();
+        boolean weighted = false;
+        int i = 0;
+        while (i < tokens.size()) {
+            String src = dotUnquote(tokens.get(i++));
+            if (src.equals(";") || src.equals("[") || src.equals("]") || src.equals(",") || src.equals("=")) throw new IllegalArgumentException("Declaração DOT inválida.");
+            if (!src.equals("graph")) values.putIfAbsent(src, src);
+            String dest = null;
+            if (i < tokens.size() && (tokens.get(i).equals("->") || tokens.get(i).equals("--"))) {
+                String op = tokens.get(i++);
+                if (!op.equals(directed ? "->" : "--") || i == tokens.size()) throw new IllegalArgumentException("Operador de aresta incompatível com o grafo.");
+                dest = dotUnquote(tokens.get(i++));
+                values.putIfAbsent(dest, dest);
+            }
+            String label = null;
+            String value = null;
+            String weightedFlag = null;
+            if (i < tokens.size() && tokens.get(i).equals("[")) {
+                i++;
+                while (i < tokens.size() && !tokens.get(i).equals("]")) {
+                    if (i + 2 >= tokens.size() || !tokens.get(i + 1).equals("=")) throw new IllegalArgumentException("Atributo DOT inválido.");
+                    String key = tokens.get(i);
+                    String attribute = dotUnquote(tokens.get(i + 2));
+                    if (key.equals("label")) label = attribute;
+                    if (key.equals("value")) value = attribute;
+                    if (key.equals("weighted")) weightedFlag = attribute;
+                    i += 3;
+                    if (i < tokens.size() && tokens.get(i).equals(",")) i++;
+                    else if (i < tokens.size() && !tokens.get(i).equals("]")) throw new IllegalArgumentException("Separador de atributos inválido.");
+                }
+                if (i == tokens.size()) throw new IllegalArgumentException("Atributos DOT não terminados.");
+                i++;
+            }
+            if (i >= tokens.size() || !tokens.get(i).equals(";")) throw new IllegalArgumentException("Falta ';' em declaração DOT.");
+            i++;
+            if (dest == null) {
+                if (src.equals("graph")) {
+                    if (weightedFlag == null || (!weightedFlag.equals("true") && !weightedFlag.equals("false"))) throw new IllegalArgumentException("Atributo weighted inválido.");
+                    weighted = Boolean.parseBoolean(weightedFlag);
+                } else if (value != null) values.put(src, value);
+            } else {
+                if (label != null) {
+                    try { Double.parseDouble(label); } catch (NumberFormatException ex) { throw new IllegalArgumentException("Peso inválido: " + label); }
+                    weighted = true;
+                }
+                edges.add(new String[]{src, dest, label});
+            }
+        }
+        List<Node<String>> nodes = new ArrayList<>();
+        for (Map.Entry<String, String> entry : values.entrySet()) nodes.add(new Node<>(entry.getKey(), entry.getValue()));
+        AdjMatrixGraph<String> result = new AdjMatrixGraph<>(nodes, directed, weighted);
+        for (String[] edge : edges) {
+            if (weighted) {
+                if (edge[2] == null) throw new IllegalArgumentException("Aresta sem peso em grafo ponderado.");
+                result.addEdge(edge[0], edge[1], Double.parseDouble(edge[2]));
+            } else result.addEdge(edge[0], edge[1]);
+        }
+        return result;
+    }
+
+    private static String dotUnquote(String token) {
+        if (!token.startsWith("\"")) return token;
+        StringBuilder result = new StringBuilder();
+        for (int i = 1; i < token.length() - 1; i++) {
+            char c = token.charAt(i);
+            if (c == '\\' && i + 1 < token.length() - 1) {
+                char next = token.charAt(++i);
+                result.append(next == 'n' ? '\n' : next == 'r' ? '\r' : next);
+            } else result.append(c);
+        }
+        return result.toString();
     }
 
     //Função para salvar o grafo >> passar o path, (salva a imagem em PNG)
@@ -1448,3 +1561,4 @@ public class AdjMatrixGraph<T> {
         br.com.davesmartins.api.Graph.createStringDotToPng(dot.toString(), filePath);
     }
 }
+
