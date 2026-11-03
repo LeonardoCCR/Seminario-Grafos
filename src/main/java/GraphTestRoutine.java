@@ -6,6 +6,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class GraphTestRoutine {
 
@@ -44,6 +47,8 @@ public class GraphTestRoutine {
         testSearchDirectedGraph();
         testSearchCycleAndLoop();
         testSearchSingleNode();
+        testDotUndirectedReadWrite();
+        testDotDirectedReadWrite();
 
         System.out.println("\nTodos os testes passaram.");
     }
@@ -883,6 +888,128 @@ public class GraphTestRoutine {
 
         showSearch("TESTE 34 - Busca em grafo de um vértice e vértice inexistente",
                 "só A é visitado; vértice inexistente é recusado com mensagem.", bfs);
+    }
+
+    // DOT TESTES:
+    private static void testDotUndirectedReadWrite() {
+        Path readPath = Path.of("DotArchives", "Read", "nao_direcionado.dot");
+
+        try {
+            AdjMatrixGraph<String> graph = AdjMatrixGraph.loadFromDot(readPath.toString());
+
+            check(!graph.isDirected(), "O arquivo nao_direcionado.dot deve gerar um grafo não direcionado.");
+            check(graph.isWeighted(), "O grafo importado deve ser ponderado.");
+            check(graph.getNumNodes() == 5, "O grafo não direcionado deve possuir cinco vértices.");
+            check(graph.getNumEdges() == 7, "O grafo não direcionado deve possuir sete arestas.");
+
+            check("Centro".equals(graph.getNode("A").getValue()), "O valor do vértice A deve ser Centro.");
+            check("Biblioteca".equals(graph.getNode("B").getValue()), "O valor do vértice B deve ser Biblioteca.");
+            check("Laboratório".equals(graph.getNode("C").getValue()), "O valor do vértice C deve ser Laboratório.");
+            check("Auditório".equals(graph.getNode("D").getValue()), "O valor do vértice D deve ser Auditório.");
+            check("Secretaria".equals(graph.getNode("E").getValue()), "O valor do vértice E deve ser Secretaria.");
+
+            check(graph.hasEdge("A", "B") && graph.hasEdge("B", "A"),
+                    "A aresta não direcionada A-B deve existir nos dois sentidos.");
+            check(Math.abs(graph.getWeight("A", "B") - 4.0) < 0.000000001, "Peso A-B incorreto.");
+            check(Math.abs(graph.getWeight("A", "C") - 2.5) < 0.000000001, "Peso A-C incorreto.");
+            check(Math.abs(graph.getWeight("B", "C") - 1.5) < 0.000000001, "Peso B-C incorreto.");
+            check(Math.abs(graph.getWeight("B", "D") - 3.0) < 0.000000001, "Peso B-D incorreto.");
+            check(Math.abs(graph.getWeight("C", "D") - 6.0) < 0.000000001, "Peso C-D incorreto.");
+            check(Math.abs(graph.getWeight("C", "E") - 5.0) < 0.000000001, "Peso C-E incorreto.");
+            check(Math.abs(graph.getWeight("D", "E") - 2.0) < 0.000000001, "Peso D-E incorreto.");
+
+            Path writeDirectory = Path.of("DotArchives", "Write");
+            Files.createDirectories(writeDirectory);
+            Path writePath = Files.createTempFile(writeDirectory, "nao_direcionado_", ".dot");
+
+            try {
+                graph.saveToDot(writePath.toString());
+
+                AdjMatrixGraph<String> reimported = AdjMatrixGraph.loadFromDot(writePath.toString());
+
+                check(!reimported.isDirected(), "A exportação deve preservar o grafo não direcionado.");
+                check(reimported.isWeighted(), "A exportação deve preservar a ponderação.");
+                check(reimported.getNumNodes() == graph.getNumNodes(), "A exportação deve preservar os vértices.");
+                check(reimported.getNumEdges() == graph.getNumEdges(), "A exportação deve preservar as arestas.");
+                check("Centro".equals(reimported.getNode("A").getValue()), "A exportação deve preservar o valor de A.");
+                check(Math.abs(reimported.getWeight("A", "B") - 4.0) < 0.000000001,
+                        "A exportação deve preservar o peso A-B.");
+                check(Math.abs(reimported.getWeight("D", "E") - 2.0) < 0.000000001,
+                        "A exportação deve preservar o peso D-E.");
+            } finally {
+                //Files.deleteIfExists(writePath);
+            }
+
+            System.out.println("\n==================================================");
+            System.out.println("TESTE 35 - Leitura e escrita DOT: grafo não direcionado e ponderado");
+            System.out.println("Esperado: importar cinco vértices e sete arestas, preservar valores e pesos, exportar e importar novamente.");
+            System.out.println("Leitura, exportação e reimportação concluídas com sucesso.");
+        } catch (IOException exception) {
+            throw new AssertionError("Falha no teste DOT não direcionado: " + exception.getMessage(), exception);
+        }
+    }
+
+
+    private static void testDotDirectedReadWrite() {
+        Path readPath = Path.of("DotArchives", "Read", "direcionado.dot");
+
+        try {
+            AdjMatrixGraph<String> graph = AdjMatrixGraph.loadFromDot(readPath.toString());
+
+            check(graph.isDirected(), "O arquivo direcionado.dot deve gerar um grafo direcionado.");
+            check(graph.isWeighted(), "O dígrafo importado deve ser ponderado.");
+            check(graph.getNumNodes() == 5, "O dígrafo deve possuir cinco vértices.");
+            check(graph.getNumEdges() == 8, "O dígrafo deve possuir oito arcos.");
+
+            check("Servidor".equals(graph.getNode("A").getValue()), "O valor do vértice A deve ser Servidor.");
+            check("Aplicação".equals(graph.getNode("B").getValue()), "O valor do vértice B deve ser Aplicação.");
+            check("Banco de Dados".equals(graph.getNode("C").getValue()), "O valor do vértice C deve ser Banco de Dados.");
+            check("Autenticação".equals(graph.getNode("D").getValue()), "O valor do vértice D deve ser Autenticação.");
+            check("Relatórios".equals(graph.getNode("E").getValue()), "O valor do vértice E deve ser Relatórios.");
+
+            check(graph.hasEdge("A", "B"), "O arco A->B deve existir.");
+            check(!graph.hasEdge("B", "A"), "A importação não deve criar o arco inverso B->A.");
+            check(Math.abs(graph.getWeight("A", "B") - 2.0) < 0.000000001, "Peso A->B incorreto.");
+            check(Math.abs(graph.getWeight("A", "D") - 4.5) < 0.000000001, "Peso A->D incorreto.");
+            check(Math.abs(graph.getWeight("B", "C") - 3.0) < 0.000000001, "Peso B->C incorreto.");
+            check(Math.abs(graph.getWeight("B", "E") - 1.5) < 0.000000001, "Peso B->E incorreto.");
+            check(Math.abs(graph.getWeight("D", "B") - 2.0) < 0.000000001, "Peso D->B incorreto.");
+            check(Math.abs(graph.getWeight("D", "C") - 5.0) < 0.000000001, "Peso D->C incorreto.");
+            check(Math.abs(graph.getWeight("C", "E") - 2.5) < 0.000000001, "Peso C->E incorreto.");
+            check(Math.abs(graph.getWeight("E", "A") - 7.0) < 0.000000001, "Peso E->A incorreto.");
+
+            Path writeDirectory = Path.of("DotArchives", "Write");
+            Files.createDirectories(writeDirectory);
+            Path writePath = Files.createTempFile(writeDirectory, "direcionado_", ".dot");
+
+            try {
+                graph.saveToDot(writePath.toString());
+
+                AdjMatrixGraph<String> reimported = AdjMatrixGraph.loadFromDot(writePath.toString());
+
+                check(reimported.isDirected(), "A exportação deve preservar a orientação.");
+                check(reimported.isWeighted(), "A exportação deve preservar a ponderação.");
+                check(reimported.getNumNodes() == graph.getNumNodes(), "A exportação deve preservar os vértices.");
+                check(reimported.getNumEdges() == graph.getNumEdges(), "A exportação deve preservar os arcos.");
+                check(reimported.hasEdge("A", "B"), "O arco A->B deve continuar existindo.");
+                check(!reimported.hasEdge("B", "A"), "O arco inverso B->A não deve ser criado.");
+                check("Servidor".equals(reimported.getNode("A").getValue()),
+                        "A exportação deve preservar o valor de A.");
+                check(Math.abs(reimported.getWeight("A", "D") - 4.5) < 0.000000001,
+                        "A exportação deve preservar o peso A->D.");
+                check(Math.abs(reimported.getWeight("E", "A") - 7.0) < 0.000000001,
+                        "A exportação deve preservar o peso E->A.");
+            } finally {
+              //  Files.deleteIfExists(writePath);
+            }
+
+            System.out.println("\n==================================================");
+            System.out.println("TESTE 36 - Leitura e escrita DOT: grafo direcionado e ponderado");
+            System.out.println("Esperado: importar cinco vértices e oito arcos, preservar orientação, valores e pesos, exportar e importar novamente.");
+            System.out.println("Leitura, exportação e reimportação concluídas com sucesso.");
+        } catch (IOException exception) {
+            throw new AssertionError("Falha no teste DOT direcionado: " + exception.getMessage(), exception);
+        }
     }
 
 }
