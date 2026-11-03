@@ -1,0 +1,18 @@
+digraph G {
+    graph [weighted="true"];
+
+    "A" [value="Servidor"];
+    "B" [value="Aplicação"];
+    "C" [value="Banco de Dados"];
+    "D" [value="Autenticação"];
+    "E" [value="Relatórios"];
+
+    "A" -> "B" [label="2.0"];
+    "A" -> "D" [label="4.5"];
+    "B" -> "C" [label="3.0"];
+    "B" -> "E" [label="1.5"];
+    "D" -> "B" [label="2.0"];
+    "D" -> "C" [label="5.0"];
+    "C" -> "E" [label="2.5"];
+    "E" -> "A" [label="7.0"];
+}
