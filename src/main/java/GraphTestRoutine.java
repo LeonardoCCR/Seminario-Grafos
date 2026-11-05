@@ -49,6 +49,10 @@ public class GraphTestRoutine {
         testSearchSingleNode();
         testDotUndirectedReadWrite();
         testDotDirectedReadWrite();
+        testNegativeInputValidations();
+        testDijkstraRejectsInvalidInputs();
+        testPrimAndKruskalRejectUnweightedGraphs();
+        testDotRejectsMissingFile();
 
         System.out.println("\nTodos os testes passaram.");
     }
@@ -771,6 +775,8 @@ public class GraphTestRoutine {
 
             graph.saveColoredToPng(cores, "grafo_original_cfcs.png");
             graph.saveReducedGraphToPng(cfcs, "grafo_reduzido.png");
+            check(Files.exists(Path.of("grafo_original_cfcs.png")), "A imagem do grafo original deve ser criada.");
+            check(Files.exists(Path.of("grafo_reduzido.png")), "A imagem do grafo reduzido deve ser criada.");
 
             System.out.println("\n==================================================");
             System.out.println("TESTE 29 - Geração visual (Parte B)");
@@ -890,7 +896,7 @@ public class GraphTestRoutine {
                 "só A é visitado; vértice inexistente é recusado com mensagem.", bfs);
     }
 
-    // DOT TESTES:
+
     private static void testDotUndirectedReadWrite() {
         Path readPath = Path.of("DotArchives", "Read", "nao_direcionado.dot");
 
@@ -937,7 +943,7 @@ public class GraphTestRoutine {
                 check(Math.abs(reimported.getWeight("D", "E") - 2.0) < 0.000000001,
                         "A exportação deve preservar o peso D-E.");
             } finally {
-                //Files.deleteIfExists(writePath);
+                Files.deleteIfExists(writePath);
             }
 
             System.out.println("\n==================================================");
@@ -948,7 +954,6 @@ public class GraphTestRoutine {
             throw new AssertionError("Falha no teste DOT não direcionado: " + exception.getMessage(), exception);
         }
     }
-
 
     private static void testDotDirectedReadWrite() {
         Path readPath = Path.of("DotArchives", "Read", "direcionado.dot");
@@ -1000,7 +1005,7 @@ public class GraphTestRoutine {
                 check(Math.abs(reimported.getWeight("E", "A") - 7.0) < 0.000000001,
                         "A exportação deve preservar o peso E->A.");
             } finally {
-              //  Files.deleteIfExists(writePath);
+                Files.deleteIfExists(writePath);
             }
 
             System.out.println("\n==================================================");
@@ -1010,6 +1015,111 @@ public class GraphTestRoutine {
         } catch (IOException exception) {
             throw new AssertionError("Falha no teste DOT direcionado: " + exception.getMessage(), exception);
         }
+    }
+
+
+    private static void expectIllegalArgument(String title, Runnable operation, String expectedMessage) {
+        try {
+            operation.run();
+            throw new AssertionError(title + ": a operação deveria ter sido rejeitada.");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage() != null && exception.getMessage().contains(expectedMessage),
+                    title + ": mensagem inesperada: " + exception.getMessage());
+            System.out.println("[REJEIÇÃO CORRETA] " + title + " -> " + exception.getMessage());
+        }
+    }
+
+    private static void testNegativeInputValidations() {
+        System.out.println("\n==================================================");
+        System.out.println("TESTE 37 - Validações negativas de entrada e estrutura");
+
+        expectIllegalArgument("ID vazio", () -> new Node<Double>("   ", 1.0), "ID do vértice não pode ser vazio");
+        expectIllegalArgument("ID duplicado no grafo", () -> {
+            List<Node<Double>> nodes = Arrays.asList(new Node<>("A", 1.0), new Node<>("A", 2.0));
+            new AdjMatrixGraph<>(nodes, false, false);
+        }, "Id de vértice repetido");
+        expectIllegalArgument("Vértice duplicado", () -> {
+            AdjMatrixGraph<Double> graph = createGraph(false, false, "A");
+            graph.addNode(new Node<>("A", 2.0));
+        }, "ID de vértice repetido");
+        expectIllegalArgument("Origem inexistente", () -> {
+            AdjMatrixGraph<Double> graph = createGraph(false, false, "A");
+            graph.addEdge("X", "A");
+        }, "Vértice não encontrado");
+        expectIllegalArgument("Peso informado em grafo não ponderado", () -> {
+            AdjMatrixGraph<Double> graph = createGraph(false, false, "A", "B");
+            graph.addEdge("A", "B", 2.0);
+        }, "Não é permitido informar peso");
+        expectIllegalArgument("Peso ausente em grafo ponderado", () -> {
+            AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B");
+            graph.addEdge("A", "B");
+        }, "Informe o peso");
+        expectIllegalArgument("Peso infinito", () -> {
+            AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B");
+            graph.addEdge("A", "B", Double.POSITIVE_INFINITY);
+        }, "número finito");
+        expectIllegalArgument("Peso NaN", () -> {
+            AdjMatrixGraph<Double> graph = createGraph(false, true, "A", "B");
+            graph.addEdge("A", "B", Double.NaN);
+        }, "número finito");
+
+        System.out.println("Esperado: todas as entradas inválidas são rejeitadas sem corromper a estrutura do grafo.");
+    }
+
+    private static void testDijkstraRejectsInvalidInputs() {
+        System.out.println("\n==================================================");
+        System.out.println("TESTE 38 - Dijkstra: rejeição de entradas incompatíveis");
+
+        AdjMatrixGraph<Double> unweighted = createGraph(false, false, "A", "B");
+        unweighted.addEdge("A", "B");
+        expectIllegalArgument("Dijkstra em grafo não ponderado",
+                () -> unweighted.dijkstra(unweighted, "A", "B"), "exige um grafo ponderado");
+
+        AdjMatrixGraph<Double> negative = createGraph(true, true, "A", "B");
+        negative.addEdge("A", "B", -2.0);
+        expectIllegalArgument("Dijkstra com peso negativo",
+                () -> negative.dijkstra(negative, "A", "B"), "pesos negativos");
+
+        AdjMatrixGraph<Double> valid = createGraph(true, true, "A", "B");
+        valid.addEdge("A", "B", 2.0);
+        expectIllegalArgument("Origem inexistente no Dijkstra",
+                () -> valid.dijkstra(valid, "X", "B"), "Vértice não encontrado");
+        expectIllegalArgument("Destino inexistente no Dijkstra",
+                () -> valid.dijkstra(valid, "A", "X"), "Vértice não encontrado");
+
+        System.out.println("Esperado: Dijkstra só executa em grafo ponderado, com vértices existentes e pesos não negativos.");
+    }
+
+    private static void testPrimAndKruskalRejectUnweightedGraphs() {
+        System.out.println("\n==================================================");
+        System.out.println("TESTE 39 - Prim e Kruskal: rejeição de grafo não ponderado");
+
+        AdjMatrixGraph<Double> graph = createGraph(false, false, "A", "B", "C");
+        graph.addEdge("A", "B");
+        graph.addEdge("B", "C");
+
+        expectIllegalArgument("Prim em grafo não ponderado", graph::prim, "exige um grafo ponderado");
+        expectIllegalArgument("Kruskal em grafo não ponderado", graph::kruskal, "exige um grafo ponderado");
+
+        System.out.println("Esperado: ambos os algoritmos são recusados porque dependem dos pesos das arestas.");
+    }
+
+    private static void testDotRejectsMissingFile() {
+        System.out.println("\n==================================================");
+        System.out.println("TESTE 40 - DOT: tentativa de importar arquivo inexistente");
+        Path missingPath = Path.of("DotArchives", "Read", "arquivo_inexistente.dot");
+        try {
+            AdjMatrixGraph.loadFromDot(missingPath.toString());
+            throw new AssertionError("A importação de um arquivo inexistente deveria falhar.");
+        } catch (IOException exception) {
+            System.out.println("[REJEIÇÃO CORRETA] Arquivo inexistente -> " + exception.getClass().getSimpleName());
+        }
+        try {
+            check(!Files.exists(missingPath), "O teste não deve criar o arquivo inexistente.");
+        } catch (Exception exception) {
+            throw new AssertionError("Falha ao validar o cenário DOT negativo.", exception);
+        }
+        System.out.println("Esperado: a leitura falha com IOException e não cria um arquivo automaticamente.");
     }
 
 }
