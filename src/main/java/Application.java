@@ -210,6 +210,7 @@ public class Application {
             System.out.println("\n=== GERAR IMAGEM DO GRAFO ===");
             System.out.println("1.9.1 - Gerar Imagem do Grafo (Normal)");
             System.out.println("1.9.2 - Gerar Imagens de CFCs e Grafo Reduzido (Malgrange)");
+            System.out.println("1.9.3 - Gerar Imagem da Busca (BFS ou DFS)");
             System.out.println("0 - Voltar ao menu do grafo");
 
             try {
@@ -219,6 +220,9 @@ public class Application {
                         break;
                     case "1.9.2":
                         generateMalgrangeGraphImages();
+                        break;
+                    case "1.9.3":
+                        generateSearchImage();
                         break;
                     case "0":
                         return;
@@ -489,6 +493,55 @@ public class Application {
 
         this.graph.saveToPng(path);
         System.out.println("Imagem do grafo gerada com sucesso: " + path);
+    }
+
+    //Gera a imagem da busca: numera os vértices na ordem de visita e pinta de vermelho
+    //as arestas que a busca percorreu, sem tirar o resto do grafo do desenho.
+    private void generateSearchImage() throws IOException {
+        if (this.graph.getNumNodes() == 0) {
+            System.out.println("O grafo não possui vértices.");
+            return;
+        }
+
+        String answer = read("Qual busca? (1 - Largura/BFS, 2 - Profundidade/DFS): ");
+
+        if (!this.running) {
+            return;
+        }
+
+        if (!answer.equals("1") && !answer.equals("2")) {
+            invalidOption();
+            return;
+        }
+
+        boolean depthFirst = answer.equals("2");
+
+        System.out.println("\nVértices disponíveis:");
+
+        for (Node<String> node : this.graph.getNodes()) {
+            System.out.println(node);
+        }
+
+        String id = read("ID do vértice inicial: ");
+
+        if (!this.running) {
+            return;
+        }
+
+        String path = read("Informe o path(caminho) de saída (ex: Generated-Graph-Images/busca.png): ");
+
+        if (!this.running) {
+            return;
+        }
+
+        if (path.isEmpty()) {
+            path = "Generated-Graph-Images/busca_" + (depthFirst ? "dfs" : "bfs") + ".png";
+        } else if (!path.endsWith(".png")) {
+            path += ".png";
+        }
+
+        this.graph.saveSearchToPng(id, depthFirst, path);
+        System.out.println("Imagem da busca gerada com sucesso: " + path);
     }
 
     private void generateMalgrangeGraphImages() throws IOException {
