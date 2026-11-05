@@ -1,49 +1,179 @@
-# Roteiro de testes e demonstração — Sistema de Grafos
+# Sistema de Grafos — Trabalho de Teoria dos Grafos
 
-## 1. Objetivo
+Projeto desenvolvido ao longo do semestre na disciplina de Teoria dos Grafos
+(IF Sudeste MG — Juiz de Fora), com o professor Daves Martins.
 
-Este material reúne uma bateria de **40 testes automatizados** para demonstrar o comportamento do sistema de grafos em situações variadas. Os testes não demonstram somente operações bem-sucedidas, como também são exercitados dados inválidos, operações incompatíveis com o tipo do grafo, grafos desconexos, ciclos, laços, vértices isolados e caminhos inexistentes.
+O sistema representa grafos por **matriz de adjacências** e funciona por um menu
+de terminal. Trata grafos orientados e não orientados, ponderados e não ponderados.
 
-A classe principal é `GraphTestRoutine.java`. Ela cria os grafos de teste, executa as operações, compara os resultados obtidos com os resultados esperados e interrompe a execução com `AssertionError` caso alguma verificação falhe. Ao final, imprime `Todos os testes passaram.` somente quando todos os testes terminam sem falhas.
+**Grupo 16:** Leonardo César e Lucas Ferreira.
 
-Cada imagem da galeria contém, lado a lado, o grafo/cenário utilizado e um recorte do resultado real registrado na execução da classe.
+## Funcionalidades
 
-## 2. Como executar
+| Entrega | O que foi implementado |
+|---|---|
+| 01 | Criação do grafo, inclusão de vértices e arestas |
+| 02 | Remoção de vértice e aresta, informações e classificação do grafo, fechos transitivos |
+| 03 | Caminho mínimo com Dijkstra |
+| 04 | Árvore geradora mínima com Kruskal e com Prim |
+| 05 | Exportação para DOT, geração de imagem e componentes fortemente conexas com Malgrange |
+| 06 | Busca em largura (BFS), busca em profundidade (DFS) e leitura de grafo a partir de arquivo DOT |
 
-1. Mantenha `GraphTestRoutine.java` no mesmo projeto em que estão `grafos.model.AdjMatrixGraph` e `grafos.model.Node`.
-2. Disponibilize os arquivos de entrada DOT nos caminhos relativos abaixo:
-   - `DotArchives/Read/nao_direcionado.dot`
-   - `DotArchives/Read/direcionado.dot`
-3. Garanta que a dependência `br.com.davesmartins.api.Graph` utilizada pelos métodos de geração de PNG esteja disponível no projeto, além do Graphviz (`dot`) se essa dependência utilizar o executável local.
-4. Execute `GraphTestRoutine.main()` com a pasta raiz do projeto como diretório de trabalho.
+## Como compilar e executar
 
-Exemplo pelo terminal, ajustando os caminhos e dependências ao projeto:
+O projeto usa **Maven** e precisa do **Java 17 ou superior**.
 
-```bash
-javac -encoding UTF-8 -d out \
-  grafos/model/Node.java \
-  grafos/model/AdjMatrixGraph.java \
-  GraphTestRoutine.java
+A geração de imagens depende da biblioteca `br.com.davesmartins:api`, que fica
+num repositório do GitLab já declarado no `pom.xml`. Por isso a primeira
+compilação precisa de internet para baixar as dependências.
 
-java -Dfile.encoding=UTF-8 -cp out GraphTestRoutine
-```
-
-> **Atenção:** o ZIP de código usado como base nesta preparação contém `Node.java`, `AdjMatrixGraph.java` e `Application.java`, mas não contém a implementação da dependência `br.com.davesmartins.api.Graph`. Por isso, a compilação completa da funcionalidade de geração de imagens depende de essa classe estar disponível no projeto original. Não substitua essa dependência por um arquivo fictício na entrega.
-
-Para salvar a saída do terminal em um arquivo:
+### Compilar
 
 ```bash
-java -Dfile.encoding=UTF-8 -cp out GraphTestRoutine > resultados-execucao.txt
+mvn clean compile
 ```
 
-## 3. Como os testes funcionam
+### Executar o sistema
 
-- **Caminho positivo:** cria um cenário válido, executa a funcionalidade e verifica valores, quantidades, ordem, caminho, componentes ou pesos esperados.
-- **Caminho negativo:** fornece uma entrada inválida ou um tipo de grafo incompatível e verifica se a implementação rejeita a operação com a exceção esperada.
-- **Preservação do grafo:** quando aplicável, verifica que algoritmos de consulta não alteram os vértices, arestas ou pesos do grafo original.
-- **Tolerância numérica:** comparações de resultados decimais usam uma pequena tolerância para evitar falsos erros por representação binária de números de ponto flutuante.
+```bash
+mvn dependency:copy-dependencies
+java -cp "target/classes;target/dependency/*" Application
+```
 
-## 4. Catálogo dos 40 testes
+No Linux ou no Mac, troque o `;` por `:` no classpath:
+
+```bash
+java -cp "target/classes:target/dependency/*" Application
+```
+
+### Executar a rotina de testes
+
+```bash
+java -cp "target/classes;target/dependency/*" GraphTestRoutine
+```
+
+A rotina executa os 40 testes em sequência e, se todos passarem, termina com
+`Todos os testes passaram.` Se algum falhar, ela para na hora e mostra o que
+era esperado.
+
+### Executar os testes unitários
+
+```bash
+mvn test
+```
+
+## Como navegar pelo menu
+
+### Menu inicial
+
+```
+1 - Criar Grafo          cria um grafo vazio; pergunta se é orientado e se é ponderado
+2 - Abrir Grafo (.dot)   carrega um grafo de um arquivo .dot do disco
+0 - Sair
+```
+
+Os arquivos de exemplo ficam em `DotArchives/Read/`. Para abrir um deles, informe
+o caminho quando o sistema pedir:
+
+```
+DotArchives/Read/direcionado.dot
+DotArchives/Read/nao_direcionado.dot
+```
+
+### Menu do grafo
+
+Depois de criar ou abrir um grafo, o sistema mostra:
+
+```
+1.1 - Adicionar Vértice            informe um ID e um valor
+1.2 - Adicionar Aresta             informe origem e destino; se for ponderado, o peso
+1.3 - Remover Vértice
+1.4 - Remover Aresta
+1.5 - Imprimir Grafo               mostra a matriz de adjacências
+1.6 - Informações do Grafo         ordem, tamanho, graus e as classificações 1.6.1 a 1.6.8
+1.7 - Algoritmos
+1.8 - Salvar Grafo em Disco (.dot)
+1.9 - Gerar Imagem do Grafo
+1.10 - Sair
+```
+
+### Algoritmos (opção 1.7)
+
+```
+1.7.1 - Dijkstra       caminho mínimo; pede origem e destino
+1.7.2 - Kruskal        árvore geradora mínima
+1.7.3 - Prim           árvore geradora mínima
+1.7.4 - Malgrange      componentes fortemente conexas e grafo reduzido
+1.7.5 - BFS            busca em largura; pede o vértice inicial
+1.7.6 - DFS            busca em profundidade; pede o vértice inicial
+```
+
+Alguns algoritmos só valem para um tipo de grafo. Quando não se aplicam, o
+sistema informa o motivo e volta ao menu, sem encerrar:
+
+| Algoritmo | Exige |
+|---|---|
+| Dijkstra | grafo ponderado e sem pesos negativos |
+| Kruskal e Prim | grafo não orientado e ponderado |
+| Malgrange e fechos transitivos | grafo orientado |
+
+### Imagens (opção 1.9)
+
+```
+1.9.1 - Imagem do grafo
+1.9.2 - Imagens das componentes fortemente conexas e do grafo reduzido
+1.9.3 - Imagem da busca (BFS ou DFS)
+```
+
+As imagens saem em `Generated-Graph-Images/`. Se o caminho for deixado em branco,
+o sistema usa um nome padrão. A imagem é gerada de novo a cada chamada, sempre a
+partir do estado atual do grafo.
+
+Na imagem da busca, os vértices aparecem numerados na ordem de visita e as
+arestas percorridas saem em vermelho. As demais arestas continuam no desenho, em
+cinza, e os vértices não alcançados ficam cinza com a observação.
+
+## Exemplo rápido de uso
+
+Para ver o sistema funcionando sobre um grafo lido do disco:
+
+1. No menu inicial, escolha `2` e informe `DotArchives/Read/direcionado.dot`
+2. Escolha `1.6` para ver as informações e a classificação do grafo
+3. Escolha `1.7` e depois `1.7.1` para o caminho mínimo de `A` até `E`
+4. Escolha `1.7.4` para as componentes fortemente conexas
+5. Escolha `1.9` e depois `1.9.3` para gerar a imagem da busca
+
+## Organização do projeto
+
+```
+src/main/java/
+  Application.java              menu do sistema
+  GraphTestRoutine.java         rotina com os 40 testes
+  grafos/model/
+    AdjMatrixGraph.java         o grafo e todos os algoritmos
+    Node.java                   o vértice
+src/test/java/                  testes unitários (JUnit)
+DotArchives/Read/               arquivos .dot de exemplo
+DotArchives/Write/              arquivos .dot salvos pelo sistema
+Generated-Graph-Images/         imagens geradas
+README-images/                  evidências dos testes usadas neste documento
+```
+
+## Sobre a rotina de testes
+
+A classe `GraphTestRoutine` cria os grafos de cada cenário, executa as operações,
+compara o resultado com o esperado e interrompe com `AssertionError` se alguma
+verificação falhar.
+
+Os testes não cobrem só os casos que dão certo. Também verificam entrada
+inválida, algoritmo aplicado no tipo errado de grafo, grafo desconexo, ciclo,
+laço, vértice isolado e caminho inexistente. Quando faz sentido, conferem também
+que o algoritmo não alterou o grafo original.
+
+Comparações de peso usam uma pequena tolerância, porque números decimais têm
+representação binária aproximada.
+
+## Os 40 testes
 
 | Nº | Cenário | O que é verificado |
 |---:|---|---|
@@ -88,7 +218,7 @@ java -Dfile.encoding=UTF-8 -cp out GraphTestRoutine > resultados-execucao.txt
 | 39 | Prim e Kruskal sem pesos | Rejeição dos dois algoritmos quando o grafo não é ponderado. |
 | 40 | DOT com arquivo inexistente | Falha controlada de leitura por `IOException`, sem criar arquivo automaticamente. |
 
-## 5. Galeria de evidências
+## Evidências dos testes
 
 As imagens foram organizadas por número de teste. Cada uma apresenta o grafo ou cenário utilizado à esquerda e o resultado correspondente da execução à direita.
 
@@ -279,25 +409,11 @@ Imagens específicas produzidas pelo teste 29:
 
 </details>
 
-## 6. Arquivos DOT utilizados
+## Arquivos DOT usados nos testes
 
-Os dois arquivos abaixo são entradas reais dos testes 35 e 36:
+- `DotArchives/Read/nao_direcionado.dot` — grafo não orientado e ponderado, 5 vértices e 7 arestas
+- `DotArchives/Read/direcionado.dot` — grafo orientado e ponderado, 5 vértices e 8 arcos
 
-- `DotArchives/Read/nao_direcionado.dot`: grafo não orientado e ponderado com cinco vértices e sete arestas.
-- `DotArchives/Read/direcionado.dot`: grafo orientado e ponderado com cinco vértices e oito arcos.
-
-Os testes criam arquivos temporários de exportação em `DotArchives/Write`, importam esses arquivos novamente e removem os temporários ao final.
-
-## 7. Resultado esperado da execução
-
-Quando todos os testes são aprovados, a última linha exibida é:
-
-```text
-Todos os testes passaram.
-```
-
-
-
-## 8. Observação sobre o escopo
-
-A classe é uma rotina de testes de demonstração, não substitui uma suíte de testes unitários como JUnit. Ela verifica os comportamentos públicos relevantes da implementação fornecida e imprime os resultados para facilitar a apresentação. Os testes negativos cobrem as validações que existem atualmente no código; não significam que toda entrada inválida imaginável já esteja coberta.
+Os testes 35 e 36 leem esses arquivos, exportam o grafo de volta para DOT, leem
+de novo e conferem que nada mudou. Os arquivos temporários criados nesse processo
+são apagados ao final.
