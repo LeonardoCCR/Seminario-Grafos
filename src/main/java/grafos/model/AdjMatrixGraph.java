@@ -1514,6 +1514,92 @@ public class AdjMatrixGraph<T> {
         br.com.davesmartins.api.Graph.createStringDotToPng(toDotString(nodeColors), filePath);
     }
 
+    //Monta o DOT da busca: numero a ordem de visita no vértice e pinto de vermelho as arestas
+    //que a busca usou. As outras arestas continuam no desenho, só que sem destaque.
+    public String toDotStringWithSearch(String startId, boolean depthFirst) {
+        int start = getNodeIndex(startId);
+        List<Integer> order = new ArrayList<>();
+        int[] parent = depthFirst ? depthFirstSearch(start, order) : breadthFirstSearch(start, order);
+
+        int[] position = new int[this.numNodes];
+        Arrays.fill(position, -1);
+
+        for (int i = 0; i < order.size(); i++) {
+            position[order.get(i)] = i + 1;
+        }
+
+        boolean[][] treeEdge = new boolean[this.numNodes][this.numNodes];
+
+        for (int v : order) {
+            if (parent[v] != -1) {
+                treeEdge[parent[v]][v] = true;
+
+                if (!this.directed) {
+                    treeEdge[v][parent[v]] = true;
+                }
+            }
+        }
+
+        StringBuilder dot = new StringBuilder(this.directed ? "digraph G {\n" : "graph G {\n");
+        dot.append("    label=\"").append(depthFirst ? "DFS" : "BFS")
+                .append(" a partir de ").append(dotEscape(startId)).append("\";\n");
+        dot.append("    labelloc=t;\n");
+
+        for (int i = 0; i < this.numNodes; i++) {
+            String id = this.nodes.get(i).getId();
+            dot.append("    ").append(dotQuote(id)).append(" [style=filled, fillcolor=");
+
+            if (position[i] == -1) {
+                //a biblioteca de imagem não entende "lightgray", só a grafia "lightgrey"
+                dot.append("lightgrey, label=\"").append(dotEscape(id)).append("\\n(não alcançado)\"]");
+            } else {
+                dot.append("lightblue, label=\"").append(dotEscape(id))
+                        .append("\\n").append(position[i]).append("º\"]");
+            }
+
+            dot.append(";\n");
+        }
+
+        boolean[][] drawn = new boolean[this.numNodes][this.numNodes];
+        String edgeOperator = this.directed ? " -> " : " -- ";
+
+        for (int i = 0; i < this.numNodes; i++) {
+            for (int j = 0; j < this.numNodes; j++) {
+                if (this.adjacencyMatrix[i][j] == WITHOUT_EDGE) {
+                    continue;
+                }
+
+                // no não orientado a matriz é espelhada, então desenho a aresta uma vez só
+                if (!this.directed && drawn[j][i]) {
+                    continue;
+                }
+
+                drawn[i][j] = true;
+                dot.append("    ").append(dotQuote(this.nodes.get(i).getId()))
+                        .append(edgeOperator).append(dotQuote(this.nodes.get(j).getId())).append(" [");
+
+                if (this.weighted) {
+                    dot.append("label=\"").append(this.adjacencyMatrix[i][j]).append("\", ");
+                }
+
+                if (treeEdge[i][j]) {
+                    dot.append("color=red, penwidth=2.5]");
+                } else {
+                    dot.append("color=gray]");
+                }
+
+                dot.append(";\n");
+            }
+        }
+
+        dot.append("}\n");
+        return dot.toString();
+    }
+
+    public void saveSearchToPng(String startId, boolean depthFirst, String filePath) throws java.io.IOException {
+        br.com.davesmartins.api.Graph.createStringDotToPng(toDotStringWithSearch(startId, depthFirst), filePath);
+    }
+
     //Função para gerar o grafo reduzido, retorna uma PNG do grafo
     public void saveReducedGraphToPng(List<List<Node<T>>> components, String filePath) throws java.io.IOException {
         StringBuilder dot = new StringBuilder("digraph G {\n");
