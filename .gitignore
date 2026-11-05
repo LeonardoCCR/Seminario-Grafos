@@ -7,6 +7,9 @@ target/
 Generated-Graph-Images/
 /*.png
 
+### Grafos salvos pelo programa (os de exemplo ficam em DotArchives/Read) ###
+DotArchives/Write/
+
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
