@@ -365,7 +365,7 @@ public class Application {
             System.out.println("1.7.4 - Malgrange (componentes fortemente conexas)");
             System.out.println("1.7.5 - Busca em largura (BFS)");
             System.out.println("1.7.6 - Busca em profundidade (DFS)");
-            System.out.println("1.7.7 - Bellman Ford (caminho mínimo com pesos negativos)");
+            System.out.println("1.7.7 - Bellman Ford (problema das rotas com custos variáveis)");
             System.out.println("0 - Voltar ao menu do grafo");
 
             try {
@@ -428,8 +428,10 @@ public class Application {
         if (algorithm.equals("dijkstra")) {
             System.out.println(this.graph.dijkstra(this.graph, src, dest));
         } else if (algorithm.equals("bellmanford")) {
-            OutputBellmanFord outputBellmanFord = new OutputBellmanFord();
-            System.out.println(outputBellmanFord.minimumCost(this.graph, src, dest) + outputBellmanFord.getShortestPath(this.graph, src, dest));
+            OutputBellmanFord<String> outputBellmanFord = new OutputBellmanFord<>();
+
+            String msg = outputBellmanFord.minimumCost(this.graph, src) + "\n" + outputBellmanFord.getShortestPath(this.graph, src, dest);
+            System.out.println(msg);
         }
     }
 

@@ -1,22 +1,109 @@
 package grafos.model;
 
-import org.w3c.dom.Node;
-
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-public class BellmanFord implements AlgoritmoBellmanFord{
+public class BellmanFord<T> implements AlgoritmoBellmanFord<T> {
 
-    private HashMap<Integer, Node> nodePredecessor;
-    private List<Double> minimumCostForEachNode;
+    private final HashMap<Node<T>, Node<T>> nodePredecessor = new HashMap<>();
+    private final HashMap<Node<T>, Double> minimumCostForEachNode = new HashMap<>();
 
     @Override
-    public Double minimumCost(AdjMatrixGraph<String> graph, String source, String destination) {
-        return 0.0;
+    public HashMap<Node<T>, Double> minimumCostForEachNode(AdjMatrixGraph<T> graph, String source) {
+        this.initializeCostMatrix(graph, source);
+        this.initializeNodePredecessor(graph);
+
+        this.relaxEdge(graph, "runtimeCycle");
+        this.relaxEdge(graph, "checkForANegativeCycle");
+
+        return minimumCostForEachNode;
+    }
+
+    private void relaxEdge(AdjMatrixGraph<T> graph, String execution) {
+        List<Edge<T>> listOfEdges = this.createEdgeLists(graph);
+        Node<T> sourceNode;
+        Node<T> destinationNode;
+        Edge<T> edge;
+        double sumOfCurrentDistance;
+        boolean relaxation;
+
+        for (int i = 0; i < graph.getOrder(); i++) {
+            relaxation = false;
+            for (int j = 0; j < listOfEdges.size(); j++) {
+                edge = listOfEdges.get(j);
+                sourceNode = edge.getSourceNode();
+                destinationNode = edge.getDestinationNode();
+                sumOfCurrentDistance = minimumCostForEachNode.get(sourceNode) + edge.getWeight();
+                if (sumOfCurrentDistance < minimumCostForEachNode.get(destinationNode)) {
+                    minimumCostForEachNode.put(destinationNode, sumOfCurrentDistance);
+                    nodePredecessor.put(destinationNode, sourceNode);
+                    relaxation = true;
+
+                    if (execution.equals("checkForANegativeCycle")) {
+                        throw new IllegalArgumentException("Operação finalizada com erro. O algoritmo detectou um ciclo negativo no grafo.");
+                    }
+                }
+            }
+            if (!relaxation) {
+                break;
+            }
+        }
     }
 
     @Override
-    public List<Node> getShortestPath(AdjMatrixGraph<String> graph, String source, String destination) {
-        return List.of();
+    public List<Node<T>> getShortestPath(AdjMatrixGraph<T> graph, String source, String destination) {
+        List<Node<T>> shortestPath = new ArrayList<>();
+        Node<T> currentPredecessor = graph.getNode(destination);
+
+        while (currentPredecessor != null) {
+            shortestPath.add(currentPredecessor);
+            currentPredecessor = nodePredecessor.get(currentPredecessor);
+        }
+
+        List<Node<T>> reverseList = new ArrayList<>(shortestPath);
+        Collections.reverse(reverseList);
+        return reverseList;
+    }
+
+    private void initializeCostMatrix(AdjMatrixGraph<T> graph, String source) {
+        Node<T> currentNode;
+        for (int i = 0; i < graph.getOrder(); i++) {
+            currentNode = graph.getNodes().get(i);
+            if (currentNode.equals(graph.getNode(source))) {
+                minimumCostForEachNode.put(currentNode, 0.0);
+                continue;
+            }
+            minimumCostForEachNode.put(currentNode, Double.POSITIVE_INFINITY);
+        }
+    }
+
+    private void initializeNodePredecessor(AdjMatrixGraph<T> graph) {
+        for (int i = 0; i < graph.getOrder(); i++) {
+            nodePredecessor.put(graph.getNode(i), null);
+        }
+    }
+
+    private List<Edge<T>> createEdgeLists(AdjMatrixGraph<T> graph) {
+        Double[][] distanceMatrix = graph.createDistanceMatrix(graph);
+        Edge<T> edge;
+        List<Edge<T>> listOfEdges = new ArrayList<>();
+
+
+        for (int i = 0; i < graph.getOrder(); i++) {
+            for (int j = 0; j < graph.getOrder(); j++) {
+                if (!distanceMatrix[i][j].equals(Double.POSITIVE_INFINITY)) {
+                    edge = new Edge<>(graph.getNode(i), graph.getNode(j), distanceMatrix[i][j]);
+                    listOfEdges.add(edge);
+                }
+            }
+        }
+
+        System.out.println("Lista de arestas: ");
+        for (Edge<T> e : listOfEdges) {
+            System.out.println(e.getSourceNode().getId() + " -> " + e.getDestinationNode().getId() + " = " + e.getWeight());
+        }
+        return listOfEdges;
     }
 }

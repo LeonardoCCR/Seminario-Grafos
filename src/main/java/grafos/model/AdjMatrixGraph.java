@@ -187,6 +187,10 @@ public class AdjMatrixGraph<T> {
         return this.nodes.get(getNodeIndex(id));
     }
 
+    public Node<T> getNode(int index) {
+        return this.nodes.get(index);
+    }
+
     public List<Node<T>> getNodes() {
         return Collections.unmodifiableList(this.nodes);
     }
@@ -333,7 +337,7 @@ public class AdjMatrixGraph<T> {
         return this.weighted ? value.toString() : "1";
     }
 
-    private int getNodeIndex(String id) {
+    protected int getNodeIndex(String id) {
         Integer index = this.nodeIndexes.get(id);
 
         if (index == null) {
@@ -717,7 +721,7 @@ public class AdjMatrixGraph<T> {
         return result.append("]").toString();
     }
 
-    private Double[][] createDistanceMatrix(AdjMatrixGraph<T> graph) {
+    protected Double[][] createDistanceMatrix(AdjMatrixGraph<T> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("O grafo não pode ser nulo.");
         }

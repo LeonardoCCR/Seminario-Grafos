@@ -1,12 +1,11 @@
 package grafos.model;
 
-import org.w3c.dom.Node;
-
+import java.util.HashMap;
 import java.util.List;
 
-public interface AlgoritmoBellmanFord {
+public interface AlgoritmoBellmanFord<T> {
 
-     Double minimumCost(AdjMatrixGraph<String> graph, String source, String destination);
+    List<Node<T>> getShortestPath(AdjMatrixGraph<T> graph, String source, String destination);
 
-    List<Node> getShortestPath(AdjMatrixGraph<String> graph, String source, String destination);
+    HashMap<Node<T>, Double> minimumCostForEachNode(AdjMatrixGraph<T> graph, String source);
 }
