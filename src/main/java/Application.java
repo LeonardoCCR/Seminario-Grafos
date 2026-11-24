@@ -1,5 +1,6 @@
 import grafos.model.AdjMatrixGraph;
 import grafos.model.Node;
+import grafos.model.OutputBellmanFord;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -205,7 +206,7 @@ public class Application {
         }
     }
 
-    private void imageMenu()  {
+    private void imageMenu() {
         while (this.running) {
             System.out.println("\n=== GERAR IMAGEM DO GRAFO ===");
             System.out.println("1.9.1 - Gerar Imagem do Grafo (Normal)");
@@ -364,12 +365,13 @@ public class Application {
             System.out.println("1.7.4 - Malgrange (componentes fortemente conexas)");
             System.out.println("1.7.5 - Busca em largura (BFS)");
             System.out.println("1.7.6 - Busca em profundidade (DFS)");
+            System.out.println("1.7.7 - Bellman Ford (caminho mínimo com pesos negativos)");
             System.out.println("0 - Voltar ao menu do grafo");
 
             try {
                 switch (read("Escolha uma opção: ")) {
                     case "1.7.1":
-                        printShortestPath();
+                        printShortestPath("dijkstra");
                         break;
                     case "1.7.2":
                         printKruskal();
@@ -386,6 +388,8 @@ public class Application {
                     case "1.7.6":
                         printSearch(true);
                         break;
+                    case "1.7.7":
+                        printShortestPath("bellmanford");
                     case "0":
                         return;
                     default:
@@ -397,7 +401,7 @@ public class Application {
         }
     }
 
-    private void printShortestPath() {
+    private void printShortestPath(String algorithm) {
         if (this.graph.getNumNodes() == 0) {
             System.out.println("O grafo não possui vértices.");
             return;
@@ -421,7 +425,12 @@ public class Application {
             return;
         }
 
-        System.out.println(this.graph.dijkstra(this.graph, src, dest));
+        if (algorithm.equals("dijkstra")) {
+            System.out.println(this.graph.dijkstra(this.graph, src, dest));
+        } else if (algorithm.equals("bellmanford")) {
+            OutputBellmanFord outputBellmanFord = new OutputBellmanFord();
+            System.out.println(outputBellmanFord.minimumCost(this.graph, src, dest) + outputBellmanFord.getShortestPath(this.graph, src, dest));
+        }
     }
 
     private void printPrim() {
