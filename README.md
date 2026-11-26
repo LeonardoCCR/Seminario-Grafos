@@ -18,6 +18,7 @@ de terminal. Trata grafos orientados e não orientados, ponderados e não ponder
 | 04 | Árvore geradora mínima com Kruskal e com Prim |
 | 05 | Exportação para DOT, geração de imagem e componentes fortemente conexas com Malgrange |
 | 06 | Busca em largura (BFS), busca em profundidade (DFS) e leitura de grafo a partir de arquivo DOT |
+| Seminário | Caminho mínimo com pesos negativos (Bellman-Ford e Floyd-Warshall) |
 
 ## Como compilar e executar
 
@@ -78,6 +79,8 @@ o caminho quando o sistema pedir:
 ```
 DotArchives/Read/direcionado.dot
 DotArchives/Read/nao_direcionado.dot
+DotArchives/Read/rotas_desconto.dot
+DotArchives/Read/rotas_ciclo_negativo.dot
 ```
 
 ### Menu do grafo
@@ -106,6 +109,8 @@ Depois de criar ou abrir um grafo, o sistema mostra:
 1.7.4 - Malgrange      componentes fortemente conexas e grafo reduzido
 1.7.5 - BFS            busca em largura; pede o vértice inicial
 1.7.6 - DFS            busca em profundidade; pede o vértice inicial
+1.7.7 - Bellman Ford   caminho mínimo com pesos negativos; pede origem e destino
+1.7.8 - Floyd-Warshall caminhos mínimos entre todos os pares
 ```
 
 Alguns algoritmos só valem para um tipo de grafo. Quando não se aplicam, o
@@ -116,6 +121,8 @@ sistema informa o motivo e volta ao menu, sem encerrar:
 | Dijkstra | grafo ponderado e sem pesos negativos |
 | Kruskal e Prim | grafo não orientado e ponderado |
 | Malgrange e fechos transitivos | grafo orientado |
+| Bellman-Ford | grafo orientado e ponderado |
+| Floyd-Warshall | qualquer grafo (detecta ciclos negativos) |
 
 ### Imagens (opção 1.9)
 
