@@ -1,0 +1,13 @@
+digraph G {
+    graph [weighted="true"];
+
+    "A" [value="Centro A"];
+    "B" [value="Hub B"];
+    "C" [value="Hub C"];
+    "D" [value="Destino D"];
+
+    "A" -> "B" [label="2.0"];
+    "A" -> "C" [label="5.0"];
+    "C" -> "B" [label="-4.0"];
+    "B" -> "D" [label="3.0"];
+}
