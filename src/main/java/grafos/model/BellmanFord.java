@@ -100,10 +100,6 @@ public class BellmanFord<T> implements AlgoritmoBellmanFord<T> {
             }
         }
 
-        System.out.println("Lista de arestas: ");
-        for (Edge<T> e : listOfEdges) {
-            System.out.println(e.getSourceNode().getId() + " -> " + e.getDestinationNode().getId() + " = " + e.getWeight());
-        }
         return listOfEdges;
     }
 }

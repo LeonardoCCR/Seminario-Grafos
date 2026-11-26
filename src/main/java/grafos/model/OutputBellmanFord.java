@@ -48,11 +48,11 @@ public class OutputBellmanFord<T> {
         }
 
         if (!graph.isWeighted()) {
-            throw new IllegalArgumentException("O algoritmo de Dijkstra exige um grafo ponderado.");
+            throw new IllegalArgumentException("O algoritmo de Bellman Ford exige um grafo ponderado.");
         }
 
         if (!graph.isDirected()) {
-            throw new IllegalArgumentException("O algoritmo de Dijkstra exige um grafo dirido (com orientação)");
+            throw new IllegalArgumentException("O algoritmo de Bellman Ford exige um grafo dirigido (com orientação)");
         }
     }
 }
