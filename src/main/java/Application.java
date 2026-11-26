@@ -1,6 +1,8 @@
+
 import grafos.model.AdjMatrixGraph;
 import grafos.model.Node;
 import grafos.model.OutputBellmanFord;
+import grafos.model.FloydWarshall;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -159,7 +161,7 @@ public class Application {
                     case "1.7":
                         algorithmsMenu();
                         break;
-                    //Manter e desmcomentar quando implementarmos nas proximas entregas
+                    //Manter e descomentar quando implementarmos nas proximas entregas
                     case "1.8":
                         saveGraph();
                         break;
@@ -366,6 +368,7 @@ public class Application {
             System.out.println("1.7.5 - Busca em largura (BFS)");
             System.out.println("1.7.6 - Busca em profundidade (DFS)");
             System.out.println("1.7.7 - Bellman Ford (problema das rotas com custos variáveis)");
+            System.out.println("1.7.8 - Floyd-Warshall (caminhos mínimos entre todos os pares)");
             System.out.println("0 - Voltar ao menu do grafo");
 
             try {
@@ -390,6 +393,10 @@ public class Application {
                         break;
                     case "1.7.7":
                         printShortestPath("bellmanford");
+                        break;
+                    case "1.7.8":
+                        printFloydWarshall();
+                        break;
                     case "0":
                         return;
                     default:
@@ -430,9 +437,19 @@ public class Application {
         } else if (algorithm.equals("bellmanford")) {
             OutputBellmanFord<String> outputBellmanFord = new OutputBellmanFord<>();
 
-            String msg = outputBellmanFord.minimumCost(this.graph, src) + "\n" + outputBellmanFord.getShortestPath(this.graph, src, dest);
+            String msg = outputBellmanFord.minimumCost(this.graph, src) + "\n"
+                    + outputBellmanFord.getShortestPath(this.graph, src, dest);
             System.out.println(msg);
         }
+    }
+
+    private void printFloydWarshall() {
+        if (this.graph.getNumNodes() == 0) {
+            System.out.println("O grafo não possui vértices.");
+            return;
+        }
+
+        System.out.println(FloydWarshall.floydWarshall(this.graph));
     }
 
     private void printPrim() {
