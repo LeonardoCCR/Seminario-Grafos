@@ -29,7 +29,9 @@ public class BellmanFord<T> implements AlgoritmoBellmanFord<T> {
         double sumOfCurrentDistance;
         boolean relaxation;
 
-        for (int i = 0; i < graph.getOrder(); i++) {
+        int iterations = execution.equals("checkForANegativeCycle") ? 1 : Math.max(0, graph.getOrder() - 1);
+
+        for (int i = 0; i < iterations; i++) {
             relaxation = false;
             for (int j = 0; j < listOfEdges.size(); j++) {
                 edge = listOfEdges.get(j);
@@ -54,8 +56,14 @@ public class BellmanFord<T> implements AlgoritmoBellmanFord<T> {
 
     @Override
     public List<Node<T>> getShortestPath(AdjMatrixGraph<T> graph, String source, String destination) {
+        Node<T> sourceNode = graph.getNode(source);
+        Node<T> destinationNode = graph.getNode(destination);
+        if (sourceNode == null || destinationNode == null) {
+            return new ArrayList<>();
+        }
+
         List<Node<T>> shortestPath = new ArrayList<>();
-        Node<T> currentPredecessor = graph.getNode(destination);
+        Node<T> currentPredecessor = destinationNode;
 
         while (currentPredecessor != null) {
             shortestPath.add(currentPredecessor);
@@ -64,6 +72,11 @@ public class BellmanFord<T> implements AlgoritmoBellmanFord<T> {
 
         List<Node<T>> reverseList = new ArrayList<>(shortestPath);
         Collections.reverse(reverseList);
+
+        if (reverseList.isEmpty() || !reverseList.get(0).equals(sourceNode)) {
+            return new ArrayList<>();
+        }
+
         return reverseList;
     }
 

@@ -14,9 +14,9 @@ public class OutputBellmanFord<T> {
     public String minimumCost(AdjMatrixGraph<T> graph, String source) {
 
         this.validateGraph(graph);
+        Node<T> node = this.validateNode(graph, source, "origem");
         HashMap<Node<T>, Double> minimumCost = bellmanFord.minimumCostForEachNode(graph, source);
         StringBuilder msg = new StringBuilder();
-        Node<T> node = graph.getNode(source);
 
         msg.append("Imprimindo o custo mínimo do vértice de origem de ID ").append(node.getId()).append(" para todos os outros vértices: \n");
 
@@ -29,17 +29,31 @@ public class OutputBellmanFord<T> {
     public String getShortestPath(AdjMatrixGraph<T> graph, String source, String destination) {
 
         this.validateGraph(graph);
+        Node<T> sourceNode = this.validateNode(graph, source, "origem");
+        Node<T> destinationNode = this.validateNode(graph, destination, "destino");
         StringBuilder msg = new StringBuilder();
         List<Node<T>> shortestPath = bellmanFord.getShortestPath(graph, source, destination);
 
-        msg.append("Caminho mais curto do ").append(graph.getNode(source)).append(" para o ").append(graph.getNode(destination)).append(": \n");
+        if (shortestPath.isEmpty()) {
+            return "Não existe caminho de " + sourceNode.getId() + " para " + destinationNode.getId() + ".\n";
+        }
+
+        msg.append("Caminho mais curto do ").append(sourceNode).append(" para o ").append(destinationNode).append(": \n");
 
         for (Node<T> node : shortestPath) {
             msg.append(node.getId()).append(" -> ");
         }
-        msg.replace(msg.length() - 3, msg.length(), "");
+        msg.replace(msg.length() - 4, msg.length(), "");
 
         return msg.toString();
+    }
+
+    private Node<T> validateNode(AdjMatrixGraph<T> graph, String id, String role) {
+        Node<T> node = graph.getNode(id);
+        if (node == null) {
+            throw new IllegalArgumentException("Vértice de " + role + " não encontrado: " + id);
+        }
+        return node;
     }
 
     private void validateGraph(AdjMatrixGraph<T> graph) {
